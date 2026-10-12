@@ -15,6 +15,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { GoogleSignInButton } from '@/components/google-signin-button';
 
 interface ApiError {
   code?: string;
@@ -129,6 +130,15 @@ export function SignInForm({ nextPath }: { nextPath?: string }) {
         <button type="submit" className="btn btn--primary btn--block" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
+
+        {/*
+          Google sits below the password form rather than above it.
+          Password sign-in is the fallback that always works, so it keeps the
+          primary position and Google is offered as the faster route for people
+          who have a Google account. The button renders itself only when the API
+          says Google is configured.
+        */}
+        <GoogleSignInButton next={next} />
       </form>
 
       <div className="auth__alt">

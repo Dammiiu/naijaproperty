@@ -16,6 +16,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { GoogleSignInButton } from '@/components/google-signin-button';
 
 interface ApiError {
   code?: string;
@@ -338,6 +339,15 @@ export function RegisterForm({ nextPath }: { nextPath?: string }) {
                 : 'Send me a code'
               : 'Create my account'}
         </button>
+
+        {/*
+          Google is offered on registration because the API creates the account
+          on first sign-in from the verified Google email, so a person who
+          registers this way never has to invent a password. It appears only for
+          the email method: the OTP method is explicitly passwordless, so adding
+          a third passwordless option above it would only muddy the choice.
+        */}
+        {method === 'email' ? <GoogleSignInButton next={next} /> : null}
 
         {method === 'otp' && otpSent ? (
           <button

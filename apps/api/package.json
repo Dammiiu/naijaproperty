@@ -31,7 +31,8 @@
     "clean:fixtures": "tsx scripts/clean-fixtures.ts",
     "r2:cors": "tsx scripts/r2-cors.ts",
     "r2:cors:check": "tsx scripts/r2-cors-check.ts",
-    "verify:reviews": "tsx scripts/verify-reviews.ts"
+    "verify:reviews": "tsx scripts/verify-reviews.ts",
+    "verify:google": "tsx scripts/verify-google-oauth-csrf.mts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

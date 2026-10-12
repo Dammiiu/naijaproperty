@@ -1460,6 +1460,67 @@ li.is-mine .bubble__bubble {
   font-size: 0.8125rem;
 }
 
+/* --- Google sign-in -------------------------------------------------------- */
+
+/*
+ * White with a real border rather than a tinted fill.
+ *
+ * Google's branding guidance for sign-in buttons specifies a white or very light
+ * neutral background with a grey outline, precisely so the button does not read
+ * as "the primary action on this page" and compete with the site's own primary
+ * button. Giving it the brand green would both violate that and make two green
+ * buttons sit in the same form.
+ */
+.btn--google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--njp-space-2);
+  width: 100%;
+  padding: var(--njp-space-3) var(--njp-space-4);
+  margin-top: var(--njp-space-3);
+  background: var(--njp-surface);
+  color: var(--njp-text);
+  border: 1px solid var(--njp-border-strong, #c9cdd2);
+  border-radius: var(--njp-radius-md, 0.5rem);
+  font-size: 0.9375rem;
+  font-weight: var(--njp-weight-medium, 500);
+  cursor: pointer;
+  transition: background var(--njp-duration-fast, 120ms), border-color var(--njp-duration-fast, 120ms);
+}
+
+.btn--google:hover {
+  background: var(--njp-surface-sunken);
+}
+
+.btn--google:focus-visible {
+  outline: 2px solid var(--njp-primary);
+  outline-offset: 2px;
+}
+
+/*
+ * The rule is drawn with a background gradient rather than a border so the "or"
+ * can sit in a gap without needing a second element to mask the border.
+ */
+.auth__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--njp-space-3);
+  margin: var(--njp-space-5) 0 0;
+  color: var(--njp-text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.auth__divider::before,
+.auth__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--njp-border);
+}
+
 /* --- Empty state ---------------------------------------------------------- */
 
 .empty {
