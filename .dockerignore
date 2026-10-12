@@ -1,0 +1,57 @@
+# Build context exclusions.
+#
+# Without this, `COPY . .` ships the host's node_modules (over a gigabyte on this
+# machine) and Docker then fails to checksum the npm workspace symlinks, because
+# Windows reports a file mode that the Linux tar writer does not recognise.
+#
+# Excluding node_modules here is also correct on its own terms: the image installs
+# its own dependencies from package-lock.json inside the build. Copying the host
+# tree would risk baking Windows-built native binaries (argon2, sharp, the Prisma
+# query engine) into a Linux image, which fails at runtime rather than at build.
+
+node_modules
+**/node_modules
+
+# Build output. Regenerated inside the image; copying it in would let a stale
+# local build shadow a correct one.
+dist
+**/dist
+.next
+**/.next
+.turbo
+**/.turbo
+
+# TypeScript incremental build state.
+#
+# The `**/` prefix is load-bearing, not decoration. Docker matches ignore
+# patterns against the path relative to the context root, and a bare `*` does
+# not cross directory boundaries, so `*.tsbuildinfo` matches only a file at the
+# root and silently lets packages/contracts/tsconfig.tsbuildinfo through. Those
+# files are what make `tsc -b` decide it is up to date, so shipping one makes the
+# build emit nothing and the API then fails to resolve @naijaproperty/contracts.
+# The failure is confusing precisely because the compile step "succeeded".
+**/*.tsbuildinfo
+
+# Secrets. An .env in the image would silently override the platform's injected
+# environment variables, which is both a security problem and the reason the
+# start script uses --env-file-if-exists.
+.env
+.env.*
+!.env.example
+
+# Version control and editor noise
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Logs and OS cruft
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Docs are not needed to build or run.
+docs
+README.md

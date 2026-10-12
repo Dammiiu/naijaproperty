@@ -1,0 +1,37 @@
+{
+  "name": "naijaproperty",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Naijaproperty — national property marketplace for Nigeria",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "packageManager": "npm@11.3.0",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.yml down",
+    "infra:logs": "docker compose -f infra/docker-compose.yml logs -f",
+    "db:generate": "npm run prisma:generate --workspace @naijaproperty/api",
+    "db:migrate": "npm run prisma:migrate --workspace @naijaproperty/api",
+    "db:deploy": "npm run prisma:deploy --workspace @naijaproperty/api",
+    "db:invariants": "npm run prisma:invariants --workspace @naijaproperty/api",
+    "verify": "npm run db:invariants && npm run prisma:seed --workspace @naijaproperty/api && npm run prisma:verify --workspace @naijaproperty/api && npm run test:media --workspace @naijaproperty/api",
+    "verify:e2e": "npm run verify:phase1 --workspace @naijaproperty/api && npm run verify:phase2 --workspace @naijaproperty/api",
+    "db:seed": "npm run prisma:seed --workspace @naijaproperty/api",
+    "db:studio": "npm run prisma:studio --workspace @naijaproperty/api"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

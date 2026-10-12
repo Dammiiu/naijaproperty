@@ -1,0 +1,109 @@
+@import '@naijaproperty/ui/tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--njp-font-sans);
+  font-size: var(--njp-text-base);
+  line-height: var(--njp-leading-normal);
+  color: var(--njp-text);
+  background: var(--njp-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  line-height: var(--njp-leading-tight);
+  font-weight: var(--njp-weight-semibold);
+  letter-spacing: -0.015em;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--njp-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+img,
+video {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--njp-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--njp-radius-sm);
+}
+
+/* Visible only when focused, so keyboard users get a reliable escape hatch. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: var(--njp-z-toast);
+  padding: var(--njp-space-3) var(--njp-space-4);
+  background: var(--njp-primary);
+  color: var(--njp-text-inverse);
+  border-radius: 0 0 var(--njp-radius-md) 0;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--njp-container-max);
+  margin-inline: auto;
+  padding-inline: var(--njp-space-4);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding-inline: var(--njp-space-6);
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

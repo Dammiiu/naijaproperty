@@ -1,0 +1,78 @@
+name: naijaproperty-infra
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: njp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: naijaproperty
+      POSTGRES_PASSWORD: naijaproperty
+      POSTGRES_DB: naijaproperty
+      # Deterministic collation so index behaviour is identical on every machine
+      POSTGRES_INITDB_ARGS: '--locale=C --encoding=UTF8'
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U naijaproperty -d naijaproperty']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  # Separate shadow database target so `prisma migrate dev` can detect drift.
+  postgres-shadow:
+    image: postgis/postgis:16-3.4
+    container_name: njp-postgres-shadow
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: naijaproperty
+      POSTGRES_PASSWORD: naijaproperty
+      POSTGRES_DB: naijaproperty_shadow
+      POSTGRES_INITDB_ARGS: '--locale=C --encoding=UTF8'
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres-shadow-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U naijaproperty -d naijaproperty_shadow']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    container_name: njp-redis
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory', '256mb', '--maxmemory-policy', 'allkeys-lru']
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  typesense:
+    image: typesense/typesense:27.1
+    container_name: njp-typesense
+    restart: unless-stopped
+    command:
+      - '--data-dir=/data'
+      - '--api-key=local-dev-key'
+      - '--enable-cors'
+    ports:
+      - '8108:8108'
+    volumes:
+      - typesense-data:/data
+    profiles: ['search']
+
+volumes:
+  postgres-data:
+  postgres-shadow-data:
+  redis-data:
+  typesense-data:

@@ -1,0 +1,665 @@
+/* ===========================================================================
+   Header, footer and positioning band.
+
+   The trust strip and the "no hidden fee" promise are load-bearing copy, not
+   decoration: they are the two claims that distinguish this from the incumbents,
+   so they are styled to be read rather than to fill space.
+   =========================================================================== */
+
+.site-header__trust {
+  background: #0f2e22;
+  color: #cfe8dc;
+  font-size: 0.75rem;
+}
+
+.site-header__trustinner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--njp-space-2);
+  justify-content: center;
+  padding-block: 0.4rem;
+}
+
+/* Wraps to one per line on a narrow phone rather than scrolling, so nothing is
+   hidden behind a horizontal scroll nobody discovers. */
+@media (max-width: 34rem) {
+  .site-header__trustinner span[aria-hidden] {
+    display: none;
+  }
+}
+
+.hero__promise {
+  margin: var(--njp-space-3) 0 0;
+  max-width: 62ch;
+  padding-left: var(--njp-space-3);
+  border-left: 3px solid var(--njp-accent);
+  color: var(--njp-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.site-footer__grid {
+  display: grid;
+  gap: var(--njp-space-6);
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  padding-bottom: var(--njp-space-6);
+  border-bottom: 1px solid var(--njp-border);
+}
+
+.site-footer__brand {
+  margin: 0 0 var(--njp-space-2);
+  font-weight: 700;
+  color: var(--njp-text);
+}
+
+.site-footer__tag {
+  margin: 0;
+  max-width: 30ch;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.site-footer__h {
+  margin: 0 0 var(--njp-space-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--njp-text-muted);
+}
+
+.site-footer__links {
+  display: grid;
+  gap: var(--njp-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.site-footer__links a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.site-footer__links a:hover {
+  color: var(--njp-accent);
+  text-decoration: underline;
+}
+
+.site-footer__legal {
+  margin: var(--njp-space-5) 0 0;
+  max-width: 80ch;
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+
+/* ===========================================================================
+   Detail page, auth forms and empty states.
+
+   Kept in its own file because these are page-level layouts rather than
+   components, and the card/filters styles are already dense in components.css.
+   =========================================================================== */
+
+.container--narrow {
+  max-width: 34rem;
+  padding-block: var(--njp-space-10) var(--njp-space-16);
+}
+
+/* --- Breadcrumbs ---------------------------------------------------------- */
+
+.detail__crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--njp-space-2);
+  padding-block: var(--njp-space-4);
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+}
+
+.detail__crumbs a {
+  color: var(--njp-accent);
+}
+
+/* --- Layout --------------------------------------------------------------- */
+
+/* Single column on a phone; the sticky contact panel only appears once there is
+   room for a sidebar, because a sticky panel in a 380px viewport would cover
+   the photos. */
+.detail__layout {
+  display: grid;
+  gap: var(--njp-space-8);
+  padding-bottom: var(--njp-space-12);
+}
+
+@media (min-width: 60rem) {
+  .detail__layout {
+    grid-template-columns: minmax(0, 1fr) 21rem;
+    align-items: start;
+  }
+
+  .detail__aside {
+    position: sticky;
+    /* Clears the sticky site header. */
+    top: calc(var(--njp-header-height, 4rem) + var(--njp-space-4));
+  }
+}
+
+/* --- Gallery -------------------------------------------------------------- */
+
+.gallery {
+  margin-bottom: var(--njp-space-6);
+}
+
+.gallery__cover {
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--njp-radius-lg);
+  background: var(--njp-surface-sunken, var(--njp-border));
+  aspect-ratio: 3 / 2;
+}
+
+.gallery__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery__thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: var(--njp-space-2);
+  margin-top: var(--njp-space-2);
+}
+
+.gallery__thumb {
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--njp-radius-md, var(--njp-radius-lg));
+  aspect-ratio: 4 / 3;
+}
+
+.gallery--empty {
+  display: grid;
+  place-items: center;
+  padding: var(--njp-space-16) var(--njp-space-6);
+  border: 1px dashed var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  color: var(--njp-text-muted);
+  text-align: center;
+}
+
+/* --- Head ----------------------------------------------------------------- */
+
+.detail__head {
+  margin-bottom: var(--njp-space-8);
+}
+
+.detail__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--njp-space-2);
+  margin-bottom: var(--njp-space-3);
+}
+
+.detail__title {
+  margin: 0 0 var(--njp-space-3);
+  font-size: var(--njp-text-2xl, 1.75rem);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+.detail__price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--njp-space-2);
+  margin: 0 0 var(--njp-space-2);
+}
+
+.detail__price-amount {
+  font-size: var(--njp-text-xl, 1.375rem);
+  font-weight: 700;
+  color: var(--njp-accent);
+}
+
+/* The period is demoted rather than dropped: "/year" versus "/month" is the
+   single biggest source of mispriced Nigerian rentals, so it must be visible
+   but must not compete with the number. */
+.detail__price-period {
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-md, 1rem);
+}
+
+.detail__negotiable {
+  padding: 0.125rem var(--njp-space-2);
+  border: 1px solid var(--njp-border);
+  border-radius: 999px;
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-xs, 0.75rem);
+}
+
+.detail__where {
+  margin: 0;
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+}
+
+/* --- Sections ------------------------------------------------------------- */
+
+.detail__section {
+  padding-block: var(--njp-space-6);
+  border-top: 1px solid var(--njp-border);
+}
+
+.detail__section-title {
+  margin: 0 0 var(--njp-space-4);
+  font-size: var(--njp-text-md, 1rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--njp-text-muted);
+}
+
+.detail__description {
+  margin: 0;
+  max-width: 68ch;
+  /* Long listings on a phone need the measure capped or they become a wall. */
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+.detail__video {
+  display: block;
+  width: 100%;
+  border-radius: var(--njp-radius-lg);
+  background: #000;
+}
+
+.detail__video-pending img {
+  width: 100%;
+  border-radius: var(--njp-radius-lg);
+}
+
+.detail__video-pending p {
+  margin: var(--njp-space-3) 0 0;
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+}
+
+/* --- Fact grid & amenities ------------------------------------------------ */
+
+.factgrid {
+  display: grid;
+  gap: var(--njp-space-4);
+  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+}
+
+.factgrid__item dt {
+  margin-bottom: 0.125rem;
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-xs, 0.75rem);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.factgrid__item dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--njp-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.amenities__item {
+  padding: 0.25rem var(--njp-space-3);
+  border: 1px solid var(--njp-border);
+  border-radius: 999px;
+  background: var(--njp-surface);
+  font-size: var(--njp-text-sm);
+  text-transform: capitalize;
+}
+
+/* --- Contact panel -------------------------------------------------------- */
+
+.contact {
+  padding: var(--njp-space-5);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  background: var(--njp-surface);
+}
+
+.contact + .postercard,
+.contact + .safetynote {
+  margin-top: var(--njp-space-4);
+}
+
+.contact--locked {
+  background: var(--njp-surface-sunken, #f7f9f8);
+}
+
+.contact--unlocked {
+  border-color: var(--njp-accent);
+}
+
+.contact--owner {
+  border-style: dashed;
+}
+
+.contact__title {
+  margin: 0 0 var(--njp-space-2);
+  font-size: var(--njp-text-md, 1rem);
+  font-weight: 700;
+}
+
+.contact__body,
+.contact__note {
+  margin: 0 0 var(--njp-space-4);
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+  line-height: 1.6;
+}
+
+.contact__error {
+  margin: 0 0 var(--njp-space-3);
+  padding: var(--njp-space-2) var(--njp-space-3);
+  border-radius: var(--njp-radius-md, 0.5rem);
+  background: #fdecec;
+  color: #8a1c1c;
+  font-size: var(--njp-text-sm);
+}
+
+.contact__list {
+  margin: 0 0 var(--njp-space-4);
+}
+
+.contact__row {
+  padding-block: var(--njp-space-2);
+  border-bottom: 1px solid var(--njp-border);
+}
+
+.contact__row:last-child {
+  border-bottom: 0;
+}
+
+.contact__row dt {
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-xs, 0.75rem);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.contact__row dd {
+  margin: 0.125rem 0 0;
+  font-weight: 600;
+}
+
+.contact__phone {
+  color: var(--njp-accent);
+}
+
+/* Shows *that* something is hidden without hinting at its value. */
+.contact__list-preview {
+  display: grid;
+  gap: var(--njp-space-2);
+  margin: 0 0 var(--njp-space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.contact__list-preview li {
+  display: flex;
+  align-items: center;
+  gap: var(--njp-space-2);
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+}
+
+.contact__masked {
+  display: inline-block;
+  width: 5.5rem;
+  height: 0.875rem;
+  border-radius: 3px;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--njp-border),
+    var(--njp-border) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+.contact__alt {
+  margin: var(--njp-space-3) 0 0;
+  text-align: center;
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+}
+
+.contact__alt a {
+  color: var(--njp-accent);
+  font-weight: 600;
+}
+
+/* --- Poster card ---------------------------------------------------------- */
+
+.postercard {
+  padding: var(--njp-space-5);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  background: var(--njp-surface);
+}
+
+.postercard__title {
+  margin: 0 0 var(--njp-space-2);
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-xs, 0.75rem);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.postercard__name {
+  margin: 0;
+  font-size: var(--njp-text-md, 1rem);
+  font-weight: 700;
+}
+
+.postercard__since {
+  margin: 0 0 var(--njp-space-3);
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+}
+
+/* Each line states a checkable fact rather than a marketing claim, and says
+   plainly when the check did not happen. */
+.postercard__trust {
+  display: grid;
+  gap: var(--njp-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--njp-text-sm);
+}
+
+.postercard__trust li {
+  display: flex;
+  gap: var(--njp-space-2);
+  align-items: baseline;
+}
+
+.postercard__trust .is-yes::before {
+  content: '✓';
+  color: var(--njp-accent);
+  font-weight: 700;
+}
+
+/*
+ * The "not verified" marker. A middot rather than a dash: the checkmark beside
+ * it needs a partner glyph that reads as "not done" without implying an em
+ * dash, and a dash on its own is ambiguous between "missing" and "pending".
+ */
+.postercard__trust .is-no::before {
+  content: '·';
+  color: var(--njp-text-muted);
+  font-weight: 700;
+}
+
+.postercard__trust .is-no {
+  color: var(--njp-text-muted);
+}
+
+/* --- Safety note ---------------------------------------------------------- */
+
+.safetynote {
+  margin-top: var(--njp-space-4);
+  padding: var(--njp-space-5);
+  border-radius: var(--njp-radius-lg);
+  background: #fff8e6;
+  border: 1px solid #f0d9a0;
+}
+
+.safetynote__title {
+  margin: 0 0 var(--njp-space-2);
+  font-size: var(--njp-text-sm);
+  font-weight: 700;
+}
+
+.safetynote__list {
+  margin: 0;
+  padding-left: var(--njp-space-5);
+  font-size: var(--njp-text-sm);
+  line-height: 1.65;
+}
+
+.safetynote__list li {
+  margin-bottom: var(--njp-space-1);
+}
+
+/* --- Related -------------------------------------------------------------- */
+
+.detail__related {
+  padding-block: var(--njp-space-8);
+  border-top: 1px solid var(--njp-border);
+}
+
+/* --- Auth forms ----------------------------------------------------------- */
+
+.auth__title {
+  margin: 0 0 var(--njp-space-2);
+  font-size: var(--njp-text-xl, 1.375rem);
+}
+
+.auth__lede {
+  margin: 0 0 var(--njp-space-6);
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+  line-height: 1.6;
+}
+
+.auth__form {
+  display: grid;
+  gap: var(--njp-space-4);
+}
+
+.field__label {
+  display: block;
+  margin-bottom: var(--njp-space-1);
+  font-size: var(--njp-text-sm);
+  font-weight: 600;
+}
+
+.field__input {
+  width: 100%;
+  padding: var(--njp-space-3);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-md, 0.5rem);
+  background: var(--njp-surface);
+  color: inherit;
+  /* 16px minimum stops iOS Safari zooming the viewport on focus, which would
+     otherwise leave the submit button off screen. */
+  font-size: 1rem;
+}
+
+.field__input:focus-visible {
+  outline: 2px solid var(--njp-accent);
+  outline-offset: 1px;
+}
+
+.field__input[aria-invalid='true'] {
+  border-color: #c0392b;
+}
+
+.field__error {
+  margin: var(--njp-space-1) 0 0;
+  color: #8a1c1c;
+  font-size: var(--njp-text-sm);
+}
+
+.auth__error {
+  margin: 0;
+  padding: var(--njp-space-3);
+  border-radius: var(--njp-radius-md, 0.5rem);
+  background: #fdecec;
+  color: #8a1c1c;
+  font-size: var(--njp-text-sm);
+}
+
+.btn--block {
+  width: 100%;
+  justify-content: center;
+}
+
+.auth__alt {
+  margin-top: var(--njp-space-6);
+  padding-top: var(--njp-space-4);
+  border-top: 1px solid var(--njp-border);
+  font-size: var(--njp-text-sm);
+}
+
+.auth__alt p {
+  margin: 0 0 var(--njp-space-2);
+}
+
+.auth__alt a {
+  color: var(--njp-accent);
+  font-weight: 600;
+}
+
+.auth__note {
+  color: var(--njp-text-muted);
+}
+
+/* --- 404 ------------------------------------------------------------------ */
+
+.notfound {
+  padding-block: var(--njp-space-16);
+  text-align: center;
+}
+
+.notfound__code {
+  margin: 0;
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.notfound__title {
+  margin: var(--njp-space-2) 0 var(--njp-space-3);
+  font-size: var(--njp-text-xl, 1.375rem);
+}
+
+.notfound__body {
+  margin: 0 auto var(--njp-space-6);
+  max-width: 44ch;
+  color: var(--njp-text-muted);
+}

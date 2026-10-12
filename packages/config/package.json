@@ -1,0 +1,13 @@
+{
+  "name": "@naijaproperty/config",
+  "version": "0.1.0",
+  "private": true,
+  "files": ["tsconfig.json"],
+  "scripts": {
+    "build": "echo \"config has no build\"",
+    "dev": "echo \"config has no dev\"",
+    "typecheck": "echo \"config has no typecheck\"",
+    "lint": "echo \"no lint configured\"",
+    "clean": "echo \"nothing to clean\""
+  }
+}

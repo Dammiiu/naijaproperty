@@ -1,0 +1,2395 @@
+/* Naijaproperty component styles. Tokens live in @naijaproperty/ui. */
+
+/* --- Header --------------------------------------------------------------- */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--njp-z-header);
+  background: var(--njp-surface);
+  border-bottom: 1px solid var(--njp-border);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--njp-space-4);
+  min-height: var(--njp-header-height);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--njp-space-2);
+  color: var(--njp-text);
+  font-weight: var(--njp-weight-bold);
+  letter-spacing: -0.02em;
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.brand__mark {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--njp-radius-sm);
+  background: linear-gradient(135deg, var(--njp-green-500), var(--njp-green-800));
+}
+
+/*
+ * Nav items carry a hint line under the label.
+ *
+ * "Rent" and "Buy" are ambiguous on their own: a visitor cannot tell from the
+ * word whether they are opening a search or starting a transaction, and "List a
+ * property" is an action while the other two are searches. The hint states what
+ * the destination actually is, which is cheaper than a marketing page explaining
+ * it later.
+ */
+.site-nav {
+  display: none;
+  gap: var(--njp-space-6);
+  margin-inline-start: var(--njp-space-4);
+}
+
+@media (min-width: 60rem) {
+  .site-nav {
+    display: flex;
+    align-items: stretch;
+  }
+}
+
+.site-nav a {
+  display: grid;
+  gap: 1px;
+  padding: var(--njp-space-2) 0;
+  color: var(--njp-text-muted);
+  border-bottom: 2px solid transparent;
+  text-decoration: none;
+}
+
+.site-nav__label {
+  font-size: var(--njp-text-base);
+  font-weight: var(--njp-weight-medium);
+  line-height: 1.2;
+}
+
+.site-nav__hint {
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  opacity: 0.75;
+}
+
+.site-nav a:hover {
+  color: var(--njp-text);
+}
+
+.site-nav a[aria-current='page'] {
+  color: var(--njp-primary);
+  border-bottom-color: var(--njp-primary);
+}
+
+.site-nav a[aria-current='page'] .site-nav__hint {
+  color: var(--njp-primary);
+  opacity: 1;
+}
+
+/* --- Account menu ------------------------------------------------------- */
+
+.accountmenu {
+  position: relative;
+}
+
+.accountmenu__trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--njp-space-2);
+  padding: 0.25rem var(--njp-space-2) 0.25rem 0.25rem;
+  border: 1px solid var(--njp-border);
+  border-radius: 999px;
+  background: var(--njp-surface);
+  font: inherit;
+  color: var(--njp-text);
+  cursor: pointer;
+}
+
+.accountmenu__trigger:hover {
+  border-color: var(--njp-primary);
+}
+
+.accountmenu__avatar {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--njp-primary);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.accountmenu__name {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 40rem) {
+  .accountmenu__name {
+    display: none;
+  }
+}
+
+.accountmenu__chev {
+  color: var(--njp-text-muted);
+}
+
+/* Anchored to the trigger and right-aligned so it never overflows the viewport
+   on a narrow phone. */
+.accountmenu__panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 60;
+  display: grid;
+  gap: 2px;
+  min-width: 15rem;
+  padding: var(--njp-space-2);
+  background: var(--njp-surface);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  box-shadow: 0 10px 30px rgba(15, 46, 34, 0.14);
+}
+
+.accountmenu__who {
+  margin: 0;
+  padding: var(--njp-space-2) var(--njp-space-3);
+  border-bottom: 1px solid var(--njp-border);
+  margin-bottom: var(--njp-space-1);
+  color: var(--njp-text-muted);
+  font-size: 0.75rem;
+}
+
+.accountmenu__panel a,
+.accountmenu__signout {
+  display: grid;
+  gap: 1px;
+  width: 100%;
+  padding: var(--njp-space-2) var(--njp-space-3);
+  border: 0;
+  border-radius: var(--njp-radius-md, 0.5rem);
+  background: none;
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--njp-text);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.accountmenu__panel a:hover,
+.accountmenu__signout:hover {
+  background: var(--njp-bg, #f6f8f7);
+}
+
+.accountmenu__hint {
+  color: var(--njp-text-muted);
+  font-size: 0.6875rem;
+}
+
+.accountmenu__signout {
+  margin-top: var(--njp-space-1);
+  border-top: 1px solid var(--njp-border);
+  border-radius: 0;
+  padding-top: var(--njp-space-3);
+  color: #8a1c1c;
+  font-weight: 600;
+}
+
+.accountmenu__signout:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.site-header__actions {
+  display: flex;
+  gap: var(--njp-space-2);
+  margin-inline-start: auto;
+}
+
+@media (min-width: 768px) {
+  .site-nav {
+    display: flex;
+  }
+}
+
+/* --- Buttons -------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--njp-space-2);
+  /* 44px minimum target: these are the primary mobile actions. */
+  min-height: 44px;
+  padding: 0 var(--njp-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--njp-radius-md);
+  font-size: var(--njp-text-base);
+  font-weight: var(--njp-weight-medium);
+  transition:
+    background var(--njp-duration-fast) var(--njp-ease-standard),
+    border-color var(--njp-duration-fast) var(--njp-ease-standard);
+}
+
+.btn:hover {
+  text-decoration: none;
+}
+
+.btn--primary {
+  background: var(--njp-primary);
+  color: var(--njp-text-inverse);
+}
+
+.btn--primary:hover {
+  background: var(--njp-primary-hover);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--njp-text);
+  border-color: var(--njp-border-strong);
+}
+
+.btn--ghost:hover {
+  background: var(--njp-surface-sunken);
+}
+
+/* --- Hero ----------------------------------------------------------------- */
+
+/*
+ * Two columns from tablet up, stacked on a phone.
+ *
+ * The single-column version put the headline above a filter bar, which left the
+ * page opening with three paragraphs and nothing to look at. The panel on the
+ * right gives the first screen an anchor and states the three claims a visitor
+ * can verify immediately, rather than more copy.
+ */
+.hero {
+  /*
+   * Vertical rhythm here is deliberately tight.
+   *
+   * This section used to run to roughly 600px before a single property appeared,
+   * which on a phone pushed the results a full screen and a half down. The
+   * headline is three lines and the promise is two, so the hero needs to be
+   * sized to that copy rather than to a decorative idea of "hero".
+   */
+  padding: var(--njp-space-6) 0 var(--njp-space-5);
+  background: linear-gradient(165deg, var(--njp-primary-soft) 0%, transparent 62%);
+  border-bottom: 1px solid var(--njp-border);
+}
+
+.hero__inner {
+  display: grid;
+  gap: var(--njp-space-5);
+  /* Both columns start at the top and the shorter one is not stretched, so a
+     tall panel never drags the headline down with it. */
+  align-items: start;
+}
+
+.hero__lead {
+  max-width: var(--njp-container-text);
+}
+
+.hero__eyebrow {
+  margin: 0 0 var(--njp-space-2);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--njp-primary);
+}
+
+.hero__title {
+  font-size: var(--njp-text-2xl);
+  max-width: 22ch;
+  /* Slightly tighter than the default. Large headlines with loose leading read
+     as a blog post rather than a product. */
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.hero__subtitle {
+  margin-top: var(--njp-space-3);
+  color: var(--njp-text-muted);
+  max-width: 54ch;
+  text-wrap: pretty;
+}
+
+/*
+ * The promise reads as a commitment rather than a paragraph.
+ *
+ * A left rule plus an explicit label is what separates a promise from marketing
+ * copy. The site also enforces it: an agency fee is rendered on every card in
+ * one of three states, so this line is describing behaviour rather than asking
+ * for trust.
+ */
+.hero__promise {
+  position: relative;
+  margin-top: var(--njp-space-5);
+  padding: var(--njp-space-4) var(--njp-space-4) var(--njp-space-4) var(--njp-space-5);
+  background: var(--njp-surface);
+  border: 1px solid var(--njp-border);
+  border-left: 3px solid var(--njp-primary);
+  border-radius: var(--njp-radius-lg);
+  color: var(--njp-text);
+  max-width: 56ch;
+}
+
+.hero__promise-label {
+  display: block;
+  margin-bottom: var(--njp-space-1);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--njp-primary);
+}
+
+/* --- Hero panel ----------------------------------------------------------- */
+
+.hero__panel {
+  padding: var(--njp-space-5);
+  background: var(--njp-surface);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  box-shadow: var(--njp-shadow-md);
+  align-self: start;
+}
+
+.hero__panel-title {
+  font-size: var(--njp-text-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--njp-text-muted);
+  margin: 0 0 var(--njp-space-4);
+}
+
+.hero__points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--njp-space-4);
+}
+
+.hero__point {
+  display: grid;
+  gap: var(--njp-space-1);
+  /* Without this the panel text collides with the next point on narrow screens,
+     because the two spans are separate lines of an implicit grid row. */
+  padding-bottom: var(--njp-space-4);
+  border-bottom: 1px solid var(--njp-border);
+}
+
+.hero__point:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.hero__point-title {
+  font-weight: 650;
+  color: var(--njp-text);
+}
+
+.hero__point-body {
+  color: var(--njp-text-muted);
+  font-size: 0.875rem;
+  text-wrap: pretty;
+}
+
+/*
+ * Stats read as three figures with captions, not as filler in a row.
+ *
+ * They were previously 11px labels under 16px numbers with almost no breathing
+ * room, which made the row look like an afterthought left in to fill the panel.
+ * Separating each with a rule and giving the figure real weight makes it read as
+ * a deliberate summary of the market.
+ */
+.hero__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--njp-space-3);
+  margin: var(--njp-space-5) 0 0;
+  padding-top: var(--njp-space-4);
+  border-top: 1px solid var(--njp-border);
+}
+
+.hero__stat {
+  display: grid;
+  gap: var(--njp-space-1);
+  /* Vertical rule between figures, not just a gap. */
+  padding-left: var(--njp-space-3);
+  border-left: 1px solid var(--njp-border);
+}
+
+.hero__stat:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.hero__stat dt {
+  font-size: 0.6875rem;
+  color: var(--njp-text-muted);
+  line-height: 1.3;
+  /* Keeps "States and FCT covered" from wrapping to three lines and unbalancing
+     the row, which was the worst-looking part of the panel. */
+  text-wrap: balance;
+}
+
+.hero__stat dd {
+  margin: 0;
+  font-size: var(--njp-text-2xl);
+  font-weight: var(--njp-weight-bold);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+@media (min-width: 768px) {
+  .hero {
+    padding: var(--njp-space-8) 0 var(--njp-space-6);
+  }
+
+  .hero__title {
+    font-size: var(--njp-text-3xl);
+  }
+
+  /* The lead keeps its own measure so the two columns read as distinct blocks
+     rather than one long line of text. */
+  .hero__lead {
+    max-width: none;
+  }
+}
+
+/*
+ * Two columns only once there is genuinely room for them.
+ *
+ * At the 768px tablet breakpoint the panel was squeezed to about 280px, which
+ * made the three points and the stat row wrap badly. 960px gives the panel a
+ * readable measure; below that it stacks, which is the right answer on a phone
+ * anyway.
+ */
+@media (min-width: 960px) {
+  .hero__inner {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: var(--njp-space-10);
+    align-items: start;
+  }
+}
+
+/* --- Filters -------------------------------------------------------------- */
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--njp-space-3);
+  /* Tightened. Search is the primary action on a property site and it was sitting
+     in a card padded like a form, which pushed the first listing below the fold
+     on a laptop and made the page read as an empty shell. */
+  padding: var(--njp-space-3);
+  margin-block: var(--njp-space-4);
+  background: var(--njp-surface);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  box-shadow: var(--njp-shadow-sm);
+}
+
+.filters[data-pending='true'] {
+  opacity: 0.7;
+  transition: opacity var(--njp-duration-base) var(--njp-ease-standard);
+}
+
+.filters__placeholder {
+  height: 180px;
+  margin-block: var(--njp-space-6);
+  background: var(--njp-surface);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+}
+
+.filters__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--njp-space-4);
+  align-items: flex-start;
+}
+
+.filters__row--primary {
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .filters__row--primary {
+    flex-direction: row;
+  }
+}
+
+.filters__search {
+  display: flex;
+  flex: 1 1 auto;
+  gap: var(--njp-space-2);
+  min-width: 0;
+}
+
+.filters__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 var(--njp-space-3);
+  font-size: var(--njp-text-base);
+  color: var(--njp-text);
+  background: var(--njp-surface);
+  border: 1px solid var(--njp-border-strong);
+  border-radius: var(--njp-radius-md);
+}
+
+.filters__input:focus-visible {
+  border-color: var(--njp-primary);
+  box-shadow: var(--njp-shadow-focus);
+  outline: none;
+}
+
+.filters__submit {
+  min-height: 44px;
+  padding-inline: var(--njp-space-5);
+  background: var(--njp-primary);
+  color: var(--njp-text-inverse);
+  border: 0;
+  border-radius: var(--njp-radius-md);
+  font-weight: var(--njp-weight-medium);
+}
+
+.filters__submit:hover {
+  background: var(--njp-primary-hover);
+}
+
+.filters__fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.filters__legend {
+  padding: 0;
+  margin-bottom: var(--njp-space-2);
+  font-size: var(--njp-text-xs);
+  font-weight: var(--njp-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--njp-text-subtle);
+}
+
+.filters__range {
+  display: flex;
+  align-items: center;
+  gap: var(--njp-space-3);
+  flex-wrap: wrap;
+}
+
+.filters__range-field {
+  display: flex;
+  align-items: center;
+  gap: var(--njp-space-2);
+}
+
+.filters__input--num {
+  width: 116px;
+  flex: 0 0 auto;
+}
+
+.filters__clear {
+  min-height: 44px;
+  padding-inline: var(--njp-space-3);
+  background: none;
+  border: 0;
+  color: var(--njp-primary);
+  font-size: var(--njp-text-sm);
+  text-decoration: underline;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--njp-space-2);
+}
+
+.chips--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: var(--njp-space-1);
+  scrollbar-width: thin;
+}
+
+.chip {
+  min-height: 36px;
+  padding: 0 var(--njp-space-3);
+  background: var(--njp-surface);
+  border: 1px solid var(--njp-border-strong);
+  border-radius: var(--njp-radius-full);
+  font-size: var(--njp-text-sm);
+  color: var(--njp-text);
+  white-space: nowrap;
+}
+
+.chip:hover {
+  background: var(--njp-surface-sunken);
+}
+
+.chip[aria-pressed='true'] {
+  background: var(--njp-primary-soft);
+  border-color: var(--njp-primary-soft-border);
+  color: var(--njp-green-800);
+  font-weight: var(--njp-weight-medium);
+}
+
+.filters__more {
+  border-top: 1px solid var(--njp-border);
+  padding-top: var(--njp-space-3);
+}
+
+.filters__more summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: var(--njp-text-sm);
+  font-weight: var(--njp-weight-medium);
+  color: var(--njp-primary);
+}
+
+.filters__more[open] summary {
+  margin-bottom: var(--njp-space-3);
+}
+
+/* --- Kind toggle ---------------------------------------------------------- */
+
+.kind-toggle {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--njp-surface-sunken);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-full);
+}
+
+.kind-toggle__option {
+  min-height: 38px;
+  padding: 0 var(--njp-space-5);
+  background: transparent;
+  border: 0;
+  border-radius: var(--njp-radius-full);
+  font-size: var(--njp-text-base);
+  font-weight: var(--njp-weight-medium);
+  color: var(--njp-text-muted);
+}
+
+.kind-toggle__option[data-selected='true'] {
+  background: var(--njp-primary);
+  color: var(--njp-text-inverse);
+  box-shadow: var(--njp-shadow-xs);
+}
+
+/* --- Results & cards ------------------------------------------------------ */
+
+.results {
+  padding-bottom: var(--njp-space-16);
+}
+
+.results__status {
+  margin-bottom: var(--njp-space-4);
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+}
+
+/* Result count on the left, the save action on the right. On a phone the two
+   wrap rather than compress, because the count is the thing a user reads first. */
+.results__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--njp-space-2);
+  margin-bottom: var(--njp-space-4);
+}
+
+.results__header .results__status {
+  margin-bottom: 0;
+}
+
+.results__save {
+  color: var(--njp-accent);
+  font-size: var(--njp-text-sm);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Button variant, so it inherits the link styling but is announced and
+   operated as a control. */
+.results__save--btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* --- Save this search --------------------------------------------------- */
+
+.savesearch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--njp-space-2);
+}
+
+.savesearch__form {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--njp-space-2);
+}
+
+.savesearch__input {
+  padding: 0.3rem var(--njp-space-2);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-md, 0.5rem);
+  background: var(--njp-surface);
+  color: inherit;
+  font-size: 0.8125rem;
+  width: min(15rem, 55vw);
+}
+
+.savesearch__error {
+  color: #8a1c1c;
+  font-size: 0.75rem;
+}
+
+/* --- Saved searches list ------------------------------------------------ */
+
+.savedlist {
+  display: grid;
+  gap: var(--njp-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.savedrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--njp-space-4);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--njp-space-4);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  background: var(--njp-surface);
+}
+
+.savedrow__name {
+  margin: 0 0 0.125rem;
+  font-size: 1rem;
+}
+
+.savedrow__query {
+  margin: 0 0 0.25rem;
+  color: var(--njp-text-muted);
+  font-size: 0.8125rem;
+}
+
+.savedrow__meta {
+  margin: 0;
+  color: var(--njp-text-muted);
+  font-size: 0.75rem;
+}
+
+.savedrow__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--njp-space-2);
+  align-items: center;
+}
+
+/* --- Shortlist heart ---------------------------------------------------- */
+
+/*
+ * Absolutely positioned over the card media rather than inside the card link. A
+ * button nested in an anchor is invalid HTML and browsers disagree about whether
+ * the click navigates, which is how "save this property" ends up taking the user
+ * to the property page instead.
+ */
+.fave {
+  position: absolute;
+  top: var(--njp-space-2);
+  right: var(--njp-space-2);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 2.125rem;
+  height: 2.125rem;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  background: rgba(15, 46, 34, 0.55);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: transform var(--njp-duration-base, 150ms) ease, background 150ms ease;
+}
+
+.fave:hover:not(:disabled) {
+  background: var(--njp-accent);
+  transform: scale(1.06);
+}
+
+.fave:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.fave.is-saved {
+  background: var(--njp-accent);
+  border-color: var(--njp-accent);
+  color: #fff;
+}
+
+/* Detail page: sits on the hero, so it needs to clear the breadcrumb row. */
+.fave--hero {
+  top: var(--njp-space-3);
+  right: var(--njp-space-3);
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+/* --- Compare table ------------------------------------------------------- */
+
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  background: var(--njp-surface);
+}
+
+.compare {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+/* A shortlist is for scanning down a column, so the header stays visible while
+   the user scrolls a long comparison sideways and down. */
+.compare thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--njp-surface);
+  box-shadow: inset 0 -1px 0 var(--njp-border);
+}
+
+.compare th,
+.compare td {
+  padding: var(--njp-space-3);
+  border-bottom: 1px solid var(--njp-border);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.compare thead th {
+  color: var(--njp-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.compare tbody tr:last-child th,
+.compare tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.compare tbody tr:hover {
+  background: var(--njp-bg, #f6f8f7);
+}
+
+.compare__prop {
+  min-width: 14rem;
+  white-space: normal !important;
+}
+
+.compare__prop a {
+  color: inherit;
+}
+
+.compare__prop a:hover {
+  color: var(--njp-accent);
+  text-decoration: underline;
+}
+
+.compare__sub {
+  display: block;
+  color: var(--njp-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 400;
+}
+
+/* --- Messaging ---------------------------------------------------------- */
+
+.threadlist {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--njp-border);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  overflow: hidden;
+}
+
+.threadrow {
+  display: grid;
+  grid-template-columns: 4rem 1fr auto;
+  gap: var(--njp-space-3);
+  align-items: start;
+  padding: var(--njp-space-3);
+  background: var(--njp-surface);
+  color: inherit;
+  text-decoration: none;
+}
+
+.threadrow:hover {
+  background: var(--njp-bg, #f6f8f7);
+}
+
+/* Unread is signalled by weight and a rule, not colour alone, so it survives a
+   colourblind reader and a greyscale screenshot. */
+.threadrow.is-unread {
+  background: #f2f8f4;
+  box-shadow: inset 3px 0 0 var(--njp-accent);
+}
+
+.threadrow__cover {
+  display: block;
+  width: 4rem;
+  height: 3rem;
+  border-radius: var(--njp-radius-md, 0.5rem);
+  overflow: hidden;
+  background: var(--njp-bg, #eef1f0);
+}
+
+.threadrow__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.threadrow__noimg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.threadrow__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.threadrow__top {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--njp-space-3);
+  align-items: baseline;
+}
+
+.threadrow__who {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.threadrow.is-unread .threadrow__who {
+  font-weight: 700;
+}
+
+.threadrow__when {
+  flex-shrink: 0;
+  color: var(--njp-text-muted);
+  font-size: 0.6875rem;
+}
+
+.threadrow__listing {
+  font-size: 0.8125rem;
+  color: var(--njp-text);
+}
+
+.threadrow__meta,
+.threadrow__preview {
+  font-size: 0.6875rem;
+  color: var(--njp-text-muted);
+}
+
+/* Truncated to one line: the preview is a reminder of the thread, not the thread. */
+.threadrow__preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
+}
+
+.threadrow__side {
+  display: grid;
+  gap: var(--njp-space-1);
+  justify-items: end;
+}
+
+.threadrow__unread {
+  display: grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--njp-accent);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.threadrow__tag {
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: #fdecec;
+  color: #8a1c1c;
+  font-size: 0.625rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 40rem) {
+  .threadrow {
+    grid-template-columns: 3rem 1fr;
+  }
+  .threadrow__side {
+    display: none;
+  }
+}
+
+/* --- Thread ------------------------------------------------------------- */
+
+.thread__grid {
+  display: grid;
+  gap: var(--njp-space-5);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .thread__grid {
+    grid-template-columns: minmax(0, 1fr) 18rem;
+  }
+}
+
+.thread__head {
+  margin-bottom: var(--njp-space-4);
+}
+
+.thread__title {
+  margin: 0;
+  font-size: var(--njp-text-2xl, 1.5rem);
+}
+
+.thread__sub,
+.thread__cardmeta {
+  margin: var(--njp-space-1) 0 0;
+  color: var(--njp-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.bubble {
+  display: grid;
+  gap: var(--njp-space-3);
+  margin: 0 0 var(--njp-space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.bubble__day {
+  margin: var(--njp-space-4) 0 var(--njp-space-2);
+  color: var(--njp-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.bubble__row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+li.is-mine .bubble__row {
+  align-items: flex-end;
+}
+
+.bubble__who {
+  color: var(--njp-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.bubble__bubble {
+  max-width: min(34rem, 82%);
+  padding: var(--njp-space-3);
+  border-radius: var(--njp-radius-lg);
+  background: var(--njp-bg, #f1f4f3);
+}
+
+li.is-mine .bubble__bubble {
+  background: var(--njp-primary);
+  color: #fff;
+}
+
+.bubble__text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  /* Long unbroken strings, which is what a pasted reference number looks like,
+     must not blow out the bubble width. */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.bubble__note {
+  margin: var(--njp-space-2) 0 0;
+  font-size: 0.6875rem;
+  opacity: 0.85;
+}
+
+.bubble__note--bad {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.bubble__time {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.625rem;
+  opacity: 0.7;
+  text-align: right;
+}
+
+.composer {
+  display: grid;
+  gap: var(--njp-space-2);
+  padding: var(--njp-space-3);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  background: var(--njp-surface);
+}
+
+.composer__box {
+  width: 100%;
+  padding: var(--njp-space-3);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-md, 0.5rem);
+  font: inherit;
+  font-size: 0.875rem;
+  resize: vertical;
+}
+
+.composer__box:focus-visible {
+  outline: 2px solid var(--njp-primary);
+  outline-offset: 1px;
+}
+
+.composer__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--njp-space-3);
+}
+
+.composer__count,
+.composer__hint {
+  margin: 0;
+  color: var(--njp-text-muted);
+  font-size: 0.6875rem;
+}
+
+.composer__error {
+  margin: 0;
+  padding: var(--njp-space-2) var(--njp-space-3);
+  border-radius: var(--njp-radius-md, 0.5rem);
+  background: #fdecec;
+  color: #8a1c1c;
+  font-size: 0.8125rem;
+}
+
+.composer__closed {
+  margin: 0;
+  padding: var(--njp-space-4);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  background: var(--njp-bg, #f1f4f3);
+  color: var(--njp-text-muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.thread__card {
+  display: grid;
+  gap: var(--njp-space-2);
+  padding: var(--njp-space-4);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  background: var(--njp-surface);
+  margin-bottom: var(--njp-space-3);
+}
+
+.thread__cardh {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--njp-text-muted);
+}
+
+.thread__cardtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.thread__cardtitle a {
+  color: inherit;
+}
+
+/* Fee disclosure on the detail page. Positive and negative states are styled
+   differently on purpose: "no fee" is good news, "not stated" is a gap the reader
+   should notice, and rendering both in the same neutral grey would hide that. */
+.fee--none {
+  color: var(--njp-primary);
+  font-weight: 600;
+}
+
+.fee--unstated {
+  font-style: italic;
+  color: var(--njp-text-muted);
+}
+
+/* --- Video upload -------------------------------------------------------- */
+
+.videoupload {
+  display: grid;
+  gap: var(--njp-space-2);
+  margin-top: var(--njp-space-4);
+  padding-top: var(--njp-space-4);
+  border-top: 1px solid var(--njp-border);
+}
+
+.videoupload__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--njp-space-2);
+}
+
+.videoupload__name {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.videoupload__progress,
+.videoupload__ready {
+  display: grid;
+  gap: var(--njp-space-2);
+  padding: var(--njp-space-3);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  background: var(--njp-bg, #f1f4f3);
+}
+
+/* Real progress rather than a spinner: a 200MB upload on mobile data can take
+   minutes, and a spinner gives the person no idea whether it is working or has
+   stalled, which is exactly when they close the tab. */
+.videoupload__bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--njp-border);
+  overflow: hidden;
+}
+
+.videoupload__fill {
+  display: block;
+  height: 100%;
+  background: var(--njp-primary);
+  transition: width 250ms ease;
+}
+
+.videoupload__pct {
+  margin: 0;
+  color: var(--njp-text-muted);
+  font-size: 0.75rem;
+}
+
+.videoupload__ready {
+  border-color: #bfe0c9;
+  background: #f0f8f3;
+}
+
+/* Secondary text link under a contact action. Sits inside the panel flow so the
+   two options read as a pair rather than two competing primary buttons. */
+.contact__wha {
+  display: block;
+  margin-top: var(--njp-space-2);
+  color: var(--njp-text-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.contact__wha:hover {
+  color: var(--njp-primary);
+}
+
+/* --- Auth: method switch and password rules --------------------------- */
+
+/*
+ * Two buttons, not a select. A dropdown hides the phone option on the small
+ * screens most of this audience is on, and it is the option they want.
+ */
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  margin: var(--njp-space-4) 0;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--njp-bg, #eef1f0);
+}
+
+.segmented__btn {
+  padding: var(--njp-space-2) var(--njp-space-2);
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--njp-text-muted);
+  cursor: pointer;
+}
+
+.segmented__btn.is-active {
+  background: var(--njp-surface);
+  color: var(--njp-primary);
+  box-shadow: 0 1px 3px rgba(15, 46, 34, 0.12);
+}
+
+.segmented__btn:focus-visible {
+  outline: 2px solid var(--njp-primary);
+  outline-offset: 1px;
+}
+
+/* Rules shown before submission. A requirement that only appears on rejection
+   reads as a rebuke and most people give up at the first one. */
+.rules {
+  display: grid;
+  gap: 2px;
+  margin: var(--njp-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--njp-text-muted);
+  font-size: 0.75rem;
+}
+
+.rules li::before {
+  content: '○ ';
+}
+
+.rules li.is-met {
+  color: var(--njp-primary);
+}
+
+.rules li.is-met::before {
+  content: '● ';
+}
+
+.field__hint {
+  margin: var(--njp-space-1) 0 0;
+  color: var(--njp-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.auth__notice {
+  margin: 0;
+  padding: var(--njp-space-2) var(--njp-space-3);
+  border-radius: var(--njp-radius-md, 0.5rem);
+  background: #eaf5ee;
+  color: #14532d;
+  font-size: 0.8125rem;
+}
+
+/* --- Empty state ---------------------------------------------------------- */
+
+.empty {
+  background: var(--njp-surface);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  padding: var(--njp-space-10) var(--njp-space-6);
+  text-align: center;
+}
+
+.empty__title {
+  margin: 0 0 var(--njp-space-2);
+  font-size: var(--njp-text-lg);
+}
+
+.empty__body {
+  margin: 0 auto var(--njp-space-6);
+  max-width: 46ch;
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+}
+
+/* Horizontal on desktop, stacked and full-width on a phone, which is where a
+   vertical list of three buttons would otherwise push content off screen. */
+.empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--njp-space-3);
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid {
+  display: grid;
+  gap: var(--njp-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+
+.card {
+  position: relative;
+  background: var(--njp-surface);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  overflow: hidden;
+  transition:
+    box-shadow var(--njp-duration-base) var(--njp-ease-standard),
+    transform var(--njp-duration-base) var(--njp-ease-standard);
+}
+
+.card:hover {
+  box-shadow: var(--njp-shadow-md);
+}
+
+.card:hover .card__image {
+  transform: scale(1.03);
+}
+
+.card__link {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: inherit;
+}
+
+.card__link:hover {
+  text-decoration: none;
+}
+
+/* Aspect-ratio box prevents layout shift as images load, which matters on
+   metered connections where we would otherwise reflow and re-fetch. */
+.card__media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--njp-surface-sunken);
+  overflow: hidden;
+}
+
+.card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--njp-duration-slow) var(--njp-ease-standard);
+}
+
+.card__placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--njp-surface-sunken);
+}
+
+.card__placeholder--shimmer,
+.skeleton-line {
+  background: linear-gradient(
+    90deg,
+    var(--njp-ink-100) 25%,
+    var(--njp-ink-200) 37%,
+    var(--njp-ink-100) 63%
+  );
+  background-size: 400% 100%;
+  animation: njp-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--njp-radius-sm);
+}
+
+@keyframes njp-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+.card__video {
+  position: absolute;
+  left: var(--njp-space-2);
+  bottom: var(--njp-space-2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--njp-space-1);
+  padding: 2px var(--njp-space-2);
+  background: rgb(12 20 18 / 0.78);
+  color: var(--njp-white);
+  border-radius: var(--njp-radius-sm);
+  font-size: var(--njp-text-xs);
+  font-weight: var(--njp-weight-medium);
+}
+
+.card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--njp-space-1);
+  padding: var(--njp-space-3);
+}
+
+.card__badges {
+  display: flex;
+  gap: var(--njp-space-1);
+  min-height: 22px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--njp-space-2);
+  border-radius: var(--njp-radius-sm);
+  font-size: var(--njp-text-xs);
+  font-weight: var(--njp-weight-semibold);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.njp-badge--verified {
+  color: var(--njp-badge-verified);
+  background: var(--njp-badge-verified-bg);
+}
+
+.njp-badge--title {
+  color: var(--njp-badge-title);
+  background: var(--njp-badge-title-bg);
+}
+
+.njp-badge--video {
+  color: var(--njp-badge-video);
+  background: var(--njp-badge-video-bg);
+}
+
+.njp-badge--new {
+  color: var(--njp-badge-new);
+  background: var(--njp-badge-new-bg);
+}
+
+.card__price {
+  display: flex;
+  align-items: baseline;
+  gap: var(--njp-space-1);
+  flex-wrap: wrap;
+  font-size: var(--njp-text-lg);
+  font-weight: var(--njp-weight-bold);
+  letter-spacing: -0.02em;
+}
+
+.card__period,
+.card__negotiable {
+  font-size: var(--njp-text-xs);
+  font-weight: var(--njp-weight-regular);
+  color: var(--njp-text-muted);
+}
+
+.card__negotiable {
+  padding: 0 var(--njp-space-2);
+  background: var(--njp-warning-soft);
+  color: var(--njp-warning);
+  border-radius: var(--njp-radius-sm);
+}
+
+/*
+ * Reputation badge on the price line.
+ *
+ * `margin-left: auto` pushes it to the end of the flex line so the rating always
+ * sits in the same place on every card, regardless of whether the price carries
+ * a "/year", a "Negotiable" chip, or both. A score that jumps around the grid is
+ * much harder to scan than one that is always in the corner.
+ *
+ * The count is de-emphasised because the score is what a reader acts on. The
+ * count is there so a 5.0 from one person is not mistaken for a 5.0 from fifty,
+ * which is the main way a review average misleads.
+ */
+.card__rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  padding: 1px var(--njp-space-2);
+  font-size: var(--njp-text-xs);
+  font-weight: var(--njp-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--njp-radius-sm);
+  white-space: nowrap;
+}
+
+.card__rating-count {
+  font-weight: var(--njp-weight-regular);
+  opacity: 0.75;
+}
+
+.card__rating--is-good {
+  color: var(--njp-success);
+  background: var(--njp-success-soft);
+}
+
+/*
+ * Mixed, not good, not bad. Deliberately muted: the point is to make the buyer
+ * look at the reviews, not to make them feel the listing is disqualified.
+ */
+.card__rating--is-mixed {
+  color: var(--njp-warning);
+  background: var(--njp-warning-soft);
+}
+
+/*
+ * The only rating that is meant to stop a scroll. A landlord averaging under 3
+ * on real transactions should be visibly flagged in the results grid, because
+ * the whole purpose of showing reputation on a card is so a buyer can rule them
+ * out before spending a click.
+ */
+.card__rating--is-poor {
+  color: var(--njp-danger);
+  background: var(--njp-danger-soft);
+}
+
+.card__title {
+  font-size: var(--njp-text-base);
+  font-weight: var(--njp-weight-medium);
+  line-height: var(--njp-leading-tight);
+  /* Two-line clamp keeps every card in a row the same height. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card__type,
+.card__loc,
+.card__fee,
+.card__facts {
+  font-size: var(--njp-text-sm);
+  color: var(--njp-text-muted);
+}
+
+/* Location reads as two lines: the neighbourhood carries the weight, the LGA and
+   state sit under it as confirmation. One flat string made the reader work out
+   which part was which. */
+.card__loc {
+  display: grid;
+  gap: 1px;
+  margin-top: var(--njp-space-1);
+}
+
+.card__area {
+  color: var(--njp-text);
+  font-weight: 600;
+}
+
+.card__locsub {
+  font-size: 0.75rem;
+}
+
+/* The fee line. "No agent fee" is the claim the whole site rests on, so it is
+   styled as a positive statement rather than as another muted metadata row. An
+   unstated fee is deliberately quieter and clearly different: silence is not the
+   same as none. */
+.card__fee {
+  margin-top: var(--njp-space-1);
+  font-weight: 600;
+  color: var(--njp-primary);
+}
+
+.card__fee.is-unstated {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--njp-text-muted);
+}
+
+.card__facts {
+  display: flex;
+  gap: var(--njp-space-3);
+  margin-top: var(--njp-space-1);
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: var(--njp-radius-sm);
+}
+
+.skeleton-line--price {
+  height: 18px;
+  width: 45%;
+}
+
+.skeleton-line--badge {
+  height: 18px;
+  width: 30%;
+}
+
+.skeleton-line--short {
+  width: 60%;
+}
+
+/* --- Footer --------------------------------------------------------------- */
+
+.site-footer {
+  padding: var(--njp-space-8) 0;
+  border-top: 1px solid var(--njp-border);
+  background: var(--njp-surface);
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+}
+
+.site-footer__meta {
+  margin-bottom: 0;
+  max-width: 70ch;
+}
+
+/* --- Review reputation summary --------------------------------------------- */
+
+/*
+ * Three columns on desktop, stacked on a phone.
+ *
+ * The score is first in the source order because that is the number people read.
+ * The distribution beside it answers "is this average real, or is it one 5-star
+ * review and four 1-star ones averaging to 3", which is the question an average
+ * on its own always raises.
+ */
+.reviews__summary {
+  display: grid;
+  gap: var(--njp-space-4);
+  padding: var(--njp-space-4);
+  margin-bottom: var(--njp-space-5);
+  background: var(--njp-surface-sunken);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-md);
+}
+
+@media (min-width: 640px) {
+  .reviews__summary {
+    grid-template-columns: minmax(140px, auto) 1fr;
+    align-items: center;
+  }
+
+  /* Sub-scores span the full width underneath both columns. */
+  .reviews__subscores {
+    grid-column: 1 / -1;
+  }
+}
+
+.reviews__score {
+  display: grid;
+  gap: var(--njp-space-1);
+  justify-items: center;
+  text-align: center;
+}
+
+.reviews__score-value {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: var(--njp-weight-bold);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.reviews__score-max {
+  font-size: var(--njp-text-sm);
+  font-weight: var(--njp-weight-regular);
+  color: var(--njp-text-muted);
+}
+
+.reviews__score-value.is-good {
+  color: var(--njp-success);
+}
+.reviews__score-value.is-mixed {
+  color: var(--njp-warning);
+}
+.reviews__score-value.is-poor {
+  color: var(--njp-danger);
+}
+
+.reviews__score-count {
+  margin: 0;
+  font-size: var(--njp-text-xs);
+  color: var(--njp-text-muted);
+}
+
+.reviews__bars {
+  display: grid;
+  gap: var(--njp-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reviews__bar {
+  display: grid;
+  grid-template-columns: 1ch 1fr 2ch;
+  align-items: center;
+  gap: var(--njp-space-2);
+  font-size: var(--njp-text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--njp-text-muted);
+}
+
+.reviews__bar-label {
+  text-align: right;
+}
+
+/* Fixed height with a sunken fill, so a 0-count band still reads as a bar. */
+.reviews__bar-track {
+  height: 8px;
+  background: var(--njp-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.reviews__bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  background: var(--njp-primary);
+  border-radius: 999px;
+  transition: width var(--njp-duration-fast);
+}
+
+.reviews__bar-n {
+  text-align: left;
+}
+
+.reviews__subscores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--njp-space-3);
+  margin: 0;
+  padding-top: var(--njp-space-3);
+  border-top: 1px solid var(--njp-border);
+}
+
+.reviews__subscore {
+  display: grid;
+  gap: 2px;
+}
+
+.reviews__subscore dt {
+  font-size: var(--njp-text-xs);
+  color: var(--njp-text-muted);
+}
+
+.reviews__subscore dd {
+  margin: 0;
+  font-size: var(--njp-text-lg);
+  font-weight: var(--njp-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Message receipts ------------------------------------------------------ */
+
+/*
+ * One row holding the clock time and the receipt, so they sit on a single
+ * baseline instead of wrapping onto two lines in a narrow bubble.
+ */
+.bubble__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: var(--njp-space-2);
+  margin-top: var(--njp-space-1);
+}
+
+/*
+ * Receipts are stepped by weight, not by colour alone.
+ *
+ * "Delivered" and "Seen" are a tiny grey difference to most people, and the whole
+ * point of a receipt is that it is distinguishable at a glance. Colour alone would
+ * also fail anyone who cannot distinguish these greens, so each state carries a
+ * different glyph and weight as well.
+ */
+.bubble__receipt {
+  font-size: 0.6875rem;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.bubble__receipt--sent {
+  color: var(--njp-text-subtle);
+}
+
+.bubble__receipt--delivered {
+  color: var(--njp-text-muted);
+  font-weight: var(--njp-weight-medium);
+}
+
+/* The only state worth drawing the eye: the person has actually opened it. */
+.bubble__receipt--seen {
+  color: var(--njp-primary);
+  font-weight: var(--njp-weight-semibold);
+}
+
+.bubble__receipt--sending {
+  color: var(--njp-text-subtle);
+  font-style: italic;
+}
+
+/* --- Similar listings ------------------------------------------------------- */
+
+.similar {
+  margin-top: var(--njp-space-10);
+  padding-top: var(--njp-space-6);
+  border-top: 1px solid var(--njp-border);
+}
+
+.similar__header {
+  margin-bottom: var(--njp-space-4);
+}
+
+.similar__title {
+  font-size: var(--njp-text-xl);
+  font-weight: var(--njp-weight-semibold);
+  letter-spacing: -0.015em;
+}
+
+/* Horizontal scroll with snap. Cards keep their natural width rather than
+   being squashed to fit, which matches the search results card size. */
+.similar__scroll {
+  display: flex;
+  gap: var(--njp-space-4);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  /* Hide the scrollbar on WebKit; Firefox uses scrollbar-width: thin. */
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--njp-space-2); /* space for the scrollbar */
+  margin: 0 calc(var(--njp-space-4) * -1); /* negative margin offsets container padding */
+  padding-inline: var(--njp-space-4);
+}
+
+.similar__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.similar__scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--njp-border) transparent;
+}
+
+.similar__item {
+  flex: 0 0 320px;
+  scroll-snap-align: start;
+}
+
+.similar__skeleton {
+  /* Matches the height of a card row while the real content loads. */
+  height: 420px;
+}
+
+/* Hide the kind badge on similar cards since they're all the same kind as
+   the parent listing. The ListingCardView supports hideKind. */
+
+/* --- Reviews -------------------------------------------------------------- */
+
+.reviews {
+  margin-top: var(--njp-space-10);
+  padding-top: var(--njp-space-6);
+  border-top: 1px solid var(--njp-border);
+}
+
+.reviews__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--njp-space-4);
+  flex-wrap: wrap;
+  gap: var(--njp-space-2);
+}
+
+.reviews__title {
+  font-size: var(--njp-text-xl);
+  font-weight: var(--njp-weight-semibold);
+  letter-spacing: -0.015em;
+}
+
+.reviews__count {
+  color: var(--njp-text-muted);
+  font-weight: var(--njp-weight-regular);
+}
+
+.reviews__skeleton {
+  height: 300px;
+}
+
+/*
+ * The empty state has to carry the eligibility rule, because a reader who cannot
+ * leave a review needs to know why. A single muted line made the gate look like
+ * an oversight rather than a rule.
+ */
+.reviews__empty {
+  display: grid;
+  gap: var(--njp-space-3);
+  justify-items: start;
+  padding: var(--njp-space-5);
+  background: var(--njp-surface);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  color: var(--njp-text-muted);
+  max-width: 62ch;
+}
+
+.reviews__empty-title {
+  font-size: var(--njp-text-lg);
+  font-weight: var(--njp-weight-semibold);
+  color: var(--njp-text);
+  margin: 0;
+}
+
+.reviews__empty p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* --- Review list --------------------------------------------------------- */
+
+.reviews__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--njp-space-4);
+}
+
+.review {
+  padding: var(--njp-space-5);
+  background: var(--njp-surface);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+}
+
+.review__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--njp-space-3);
+  flex-wrap: wrap;
+  gap: var(--njp-space-2);
+}
+
+.review__author {
+  display: flex;
+  align-items: center;
+  gap: var(--njp-space-2);
+}
+
+.review__name {
+  font-weight: 600;
+  color: var(--njp-text);
+}
+
+.review__verification {
+  font-size: var(--njp-text-xs);
+  padding: 2px var(--njp-space-2);
+  border-radius: var(--njp-radius-full);
+  text-transform: capitalize;
+}
+
+.review__verification--phone_verified {
+  background: var(--njp-success-soft);
+  color: var(--njp-success);
+}
+
+.review__verification--document_verified {
+  background: var(--njp-info-soft);
+  color: var(--njp-info);
+}
+
+.review__verification--unverified {
+  background: var(--njp-bg);
+  color: var(--njp-text-muted);
+}
+
+.review__ratings {
+  margin-bottom: var(--njp-space-3);
+  display: grid;
+  gap: var(--njp-space-2);
+}
+
+.review__rating-row {
+  display: flex;
+  align-items: center;
+  gap: var(--njp-space-2);
+}
+
+.review__rating-label {
+  font-size: var(--njp-text-sm);
+  color: var(--njp-text-muted);
+  min-width: 100px;
+}
+
+.review__stars {
+  display: flex;
+  gap: 2px;
+  line-height: 1;
+}
+
+.review__stars .filled {
+  color: var(--njp-warning);
+}
+
+.review__body {
+  margin: 0 0 var(--njp-space-3);
+  color: var(--njp-text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.review__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--njp-space-3);
+  border-top: 1px solid var(--njp-border);
+}
+
+.review__votes {
+  display: flex;
+  gap: var(--njp-space-3);
+}
+
+.review__vote {
+  display: flex;
+  align-items: center;
+  gap: var(--njp-space-1);
+  padding: var(--njp-space-1) var(--njp-space-2);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-md);
+  background: var(--njp-bg);
+  color: var(--njp-text);
+  font-size: var(--njp-text-sm);
+  cursor: pointer;
+  transition: all var(--njp-duration-fast) var(--njp-ease-standard);
+}
+
+.review__vote:hover {
+  border-color: var(--njp-primary);
+}
+
+.review__vote.active {
+  background: var(--njp-primary-soft);
+  border-color: var(--njp-primary);
+  color: var(--njp-primary);
+}
+
+.review__vote-icon {
+  font-size: 1rem;
+}
+
+.review__flag {
+  padding: var(--njp-space-1) var(--njp-space-2);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-md);
+  background: transparent;
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+  cursor: pointer;
+}
+
+.review__flag:hover {
+  border-color: var(--njp-danger);
+  color: var(--njp-danger);
+}
+
+/* --- Review form --------------------------------------------------------- */
+
+.review-form {
+  margin-top: var(--njp-space-6);
+  padding: var(--njp-space-5);
+  background: var(--njp-surface);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+}
+
+.review-form__title {
+  margin: 0 0 var(--njp-space-4);
+  font-size: var(--njp-text-lg);
+  font-weight: var(--njp-weight-semibold);
+}
+
+.review-form__group {
+  margin-bottom: var(--njp-space-4);
+}
+
+.review-form__label {
+  display: block;
+  margin-bottom: var(--njp-space-1);
+  font-size: var(--njp-text-sm);
+  font-weight: var(--njp-weight-medium);
+  color: var(--njp-text);
+}
+
+.review-form__optional {
+  font-weight: var(--njp-weight-regular);
+  color: var(--njp-text-muted);
+}
+
+.review-form__required {
+  color: var(--njp-danger);
+  margin-left: 2px;
+}
+
+.review-form__stars {
+  display: flex;
+  gap: var(--njp-space-1);
+  margin-bottom: var(--njp-space-1);
+}
+
+.review-form__star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--njp-border);
+  border-radius: var(--njp-radius-md);
+  background: var(--njp-bg);
+  color: var(--njp-border);
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all var(--njp-duration-fast) var(--njp-ease-standard);
+}
+
+.review-form__star:hover {
+  border-color: var(--njp-warning);
+  color: var(--njp-warning);
+}
+
+.review-form__star.filled {
+  border-color: var(--njp-warning);
+  background: var(--njp-warning-soft);
+  color: var(--njp-warning);
+}
+
+.review-form__clear {
+  display: inline-block;
+  margin-top: var(--njp-space-1);
+  font-size: var(--njp-text-xs);
+  color: var(--njp-text-muted);
+  cursor: pointer;
+}
+
+.review-form__clear:hover {
+  color: var(--njp-text);
+}
+
+.review-form__textarea {
+  width: 100%;
+  padding: var(--njp-space-3);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-md);
+  background: var(--njp-bg);
+  color: var(--njp-text);
+  font: inherit;
+  font-size: var(--njp-text-base);
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 120px;
+  box-sizing: border-box;
+}
+
+.review-form__textarea:focus {
+  outline: none;
+  border-color: var(--njp-primary);
+  box-shadow: 0 0 0 3px var(--njp-primary-soft);
+}
+
+.review-form__char-count {
+  margin-top: var(--njp-space-1);
+  text-align: right;
+  font-size: var(--njp-text-xs);
+  color: var(--njp-text-muted);
+}
+
+.review-form__error {
+  margin: var(--njp-space-3) 0 0;
+  padding: var(--njp-space-3);
+  background: var(--njp-danger-soft);
+  border: 1px solid var(--njp-danger);
+  border-radius: var(--njp-radius-md);
+  color: var(--njp-danger);
+  font-size: var(--njp-text-sm);
+}
+
+.review-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--njp-space-2);
+  margin-top: var(--njp-space-4);
+}
+
+.reviews__load-more {
+  margin-top: var(--njp-space-4);
+  width: 100%;
+}

@@ -1,0 +1,1110 @@
+// ---------------------------------------------------------------------------
+// Naijaproperty schema. Postgres + PostGIS.
+//
+// Two invariants are enforced structurally rather than in application code:
+//   1. A listing's `type_id` must belong to the same `kind_id` as the listing.
+//      (Trailing FK/trigger below.) This is the failure mode PropertyPro has
+//      today, where Sale and Rent share one Type facet list.
+//   2. A review's author must have a matching contact_reveal or stay_record
+//      for that listing. Unverified credibility is structurally impossible.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+  extensions  = [postgis, pg_trgm, citext, btree_gin, unaccent]
+}
+
+// ===========================================================================
+// Identity
+// ===========================================================================
+
+enum UserRole {
+  USER
+  AGENT
+  MODERATOR
+  ADMIN
+  SUPERADMIN
+}
+
+enum VerificationTier {
+  NONE
+  PHONE
+  DOCUMENT
+  VERIFIED_AGENT
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique @db.Citext
+  /// Envelope-encrypted at rest. Never selected into a public serializer.
+  phoneEnc  String?  @map("phone_enc")
+  /// HMAC blind index for lookups and uniqueness without decrypting.
+  phoneIdx  String?  @unique @map("phone_idx")
+  phoneVerifiedAt DateTime? @db.Timestamptz @map("phone_verified_at")
+
+  passwordHash String?  @map("password_hash")
+  googleSub    String?  @unique @map("google_sub")
+
+  displayName String  @map("display_name")
+  avatarUrl   String? @map("avatar_url")
+
+  role              UserRole         @default(USER)
+  verificationTier  VerificationTier @default(NONE)
+  status            UserStatus       @default(ACTIVE)
+  twoFactorSecret   String?          @map("two_factor_secret")
+  twoFactorEnabled  Boolean          @default(false) @map("two_factor_enabled")
+
+  /// Moderators only see queue rows in these states. Empty = global scope.
+  scopeStates       String[]         @default([]) @map("scope_states")
+
+  emailVerifiedAt   DateTime? @db.Timestamptz @map("email_verified_at")
+  lastLoginAt       DateTime? @db.Timestamptz @map("last_login_at")
+  failedLoginCount  Int              @default(0) @map("failed_login_count")
+  lockedUntil       DateTime? @db.Timestamptz @map("locked_until")
+
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz @map("updated_at")
+
+  sessions         Session[]
+  agentProfile     AgentProfile?
+  listings         Listing[]
+  mediaAssets      MediaAsset[]
+  contactReveals   ContactReveal[]   @relation("RevealViewer")
+  ownedReveals     ContactReveal[]   @relation("RevealOwner")
+  conversations    Conversation[]    @relation("ConversationInitiator")
+  ownedConversations Conversation[] @relation("ConversationOwner")
+  messages         Message[]
+  messageReads     MessageRead[]
+  reviews          Review[]
+  reviewVotes      ReviewVote[]
+  savedSearches    SavedSearch[]
+  favourites       Favourite[]
+  auditLogs        AuditLog[]        @relation("AuditActor")
+  reviewEvents     ListingReviewEvent[]
+  reviewAssignments ReviewAssignment[]
+  moderationSignalsIssued ModerationSignal[] @relation("SignalIssuer")
+
+  @@index([status, createdAt])
+  @@index([role])
+  @@map("users")
+}
+
+model Session {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 of the refresh token. Unique so rotation can find the exact row,
+  /// and so a duplicate token is rejected rather than silently creating a
+  /// second session.
+  refreshTokenHash String   @unique @map("refresh_token_hash")
+  ipHash           String?  @map("ip_hash")
+  userAgent        String?  @map("user_agent")
+  deviceLabel      String?  @map("device_label")
+  expiresAt        DateTime @db.Timestamptz @map("expires_at")
+  revokedAt        DateTime? @db.Timestamptz @map("revoked_at")
+  createdAt        DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model AgentProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique @map("user_id")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agencyName         String?  @map("agency_name")
+  /// RERAQ / PNGSDT / AMAP licence number. The verifiable agent identity that
+  /// neither Jiji nor PropertyPro actually checks.
+  licenceNo          String?  @map("licence_no")
+  licenceBody        String?  @map("licence_body")
+  licenceDocAssetId  String?  @map("licence_doc_asset_id")
+  licenceVerifiedAt  DateTime? @db.Timestamptz @map("licence_verified_at")
+  yearsActive        Int?     @map("years_active")
+  bio                String?
+  officeStates       String[] @default([]) @map("office_states")
+  websiteUrl         String?  @map("website_url")
+  createdAt          DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt          DateTime @updatedAt @db.Timestamptz @map("updated_at")
+
+  listings Listing[] @relation("ListingAgency")
+
+  @@map("agent_profiles")
+}
+
+// ===========================================================================
+// Locations: 36 states + FCT, 774 LGAs, user-driven areas
+// ===========================================================================
+
+model State {
+  code String @id @db.Char(2)
+  name String
+  slug String @unique
+  centreLat Float? @map("centre_lat")
+  centreLng Float? @map("centre_lng")
+
+  lgas   Lga[]
+  areas  Area[]
+  listings Listing[]
+
+  @@map("states")
+}
+
+model Lga {
+  /// Surrogate key. `code` is the stable public identifier that listings
+  /// reference, so it must never be renumbered once listings exist.
+  id        String @id @default(cuid())
+  code      String @unique @db.VarChar(12)
+  name      String
+  stateCode String @map("state_code") @db.Char(2)
+  state     State  @relation(fields: [stateCode], references: [code])
+  centreLat Float? @map("centre_lat")
+  centreLng Float? @map("centre_lng")
+
+
+  /// Whether the LGA is in the public reference data. Nigeria has more LGAs than
+  /// any table here holds, so a poster can propose one; a proposal lands inactive
+  /// and an admin curates it, exactly as with areas. Rejecting the listing
+  /// instead would leave the site empty where people actually live.
+  isActive      Boolean @default(true) @map("is_active")
+  /// How many posters proposed it, so the ones worth curating rise to the top.
+  proposalCount Int     @default(0) @map("proposal_count")
+  areas    Area[]
+  listings Listing[]
+
+  @@unique([stateCode, name])
+  @@index([stateCode])
+  @@map("lgas")
+}
+
+model Area {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String
+  normName  String   @map("norm_name")
+  lgaId     String   @map("lga_id")
+  lga       Lga      @relation(fields: [lgaId], references: [id])
+  stateCode String   @map("state_code") @db.Char(2)
+  state     State    @relation(fields: [stateCode], references: [code])
+
+  /// PostGIS polygon for map search and "nearby similar homes".
+  geom        Unsupported("geometry(Polygon, 4326)")?
+  centreLat   Float?   @map("centre_lat")
+  centreLng   Float?   @map("centre_lng")
+
+  /// Inactive areas are proposed by posters and pending admin curation.
+  isActive    Boolean  @default(false) @map("is_active")
+  /// Number of listings that proposed this area. Drives curation priority.
+  proposalCount Int    @default(0) @map("proposal_count")
+
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz @map("updated_at")
+
+  aliases AreaAlias[]
+  listings Listing[]
+
+  @@unique([lgaId, normName])
+  @@index([stateCode, isActive])
+  @@index([normName])
+  @@map("areas")
+}
+
+/// Informal names are the real search problem: "Egbeda", "Ikeja GRA",
+/// "Adamu Baulkura". Autocomplete resolves through this table with a
+/// normalised, unaccented key so "egbed(a)" and "Egbeda" both hit.
+model AreaAlias {
+  id        String  @id @default(cuid())
+  areaId    String  @map("area_id")
+  area      Area    @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  alias     String
+  normAlias String  @map("norm_alias")
+
+  @@unique([normAlias, areaId])
+  @@index([normAlias])
+  @@map("area_aliases")
+}
+
+// ===========================================================================
+// Listings
+// ===========================================================================
+
+enum ListingKind {
+  SALE
+  RENT
+}
+
+enum PricePeriod {
+  NONE
+  MONTHLY
+  TWO_YEARLY
+  YEARLY
+}
+
+enum DeedType {
+  NONE
+  COFO
+  EXCISION_GAZETTE
+  SURVEY
+  DEED_OF_ASSIGNMENT
+  SUBJECT_TO
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  LIVE
+  /// Sent back to the poster with field-level reasons. The poster can edit and
+  /// resubmit, which is a different outcome from a hard rejection.
+  CHANGES_REQUESTED
+  REJECTED
+  EXPIRED
+  RESERVED
+  SOLD
+  ARCHIVED
+}
+
+model ListingKindDef {
+  code             String @id
+  label            String
+  pricePeriods     String[] @default([]) @map("price_periods")
+  requiresDeedDoc  Boolean @default(false) @map("requires_deed_doc")
+
+  types    ListingType[]
+  listings Listing[]
+
+  @@map("listing_kinds")
+}
+
+/**
+ * A type code is scoped to its kind, so BUNGALOW can exist once under SALE and
+ * once under RENT without colliding. The composite primary key is what makes
+ * the rent/sale taxonomies genuinely disjoint rather than a naming convention.
+ */
+model ListingType {
+  kindCode  String       @map("kind_code")
+  code      String       @db.VarChar(32)
+  label     String
+  kind      ListingKindDef @relation(fields: [kindCode], references: [code])
+  sortOrder Int          @default(0) @map("sort_order")
+  requiresBedrooms Boolean @default(false) @map("requires_bedrooms")
+  requiresPlotSize  Boolean @default(false) @map("requires_plot_size")
+
+  listings Listing[]
+
+  @@id([kindCode, code])
+  @@index([code])
+  @@map("listing_types")
+}
+
+model Listing {
+  id         String      @id @default(cuid())
+  kindCode   String      @map("kind_code")
+  kind       ListingKindDef @relation(fields: [kindCode], references: [code])
+  typeCode   String      @map("type_code") @db.VarChar(32)
+  type       ListingType @relation(fields: [typeCode, kindCode], references: [code, kindCode])
+
+  stateCode  String  @map("state_code") @db.Char(2)
+  state      State   @relation(fields: [stateCode], references: [code])
+  lgaId      String  @map("lga_id")
+  lga        Lga     @relation(fields: [lgaId], references: [id])
+  areaId     String? @map("area_id")
+  area       Area?   @relation(fields: [areaId], references: [id])
+
+  /// Reveal-gated: encrypted at rest, omitted from every public serializer.
+  exactAddressEnc String? @map("exact_address_enc")
+  /// Coarse lat/lng used for map clustering. Deliberately jittered.
+  mapLat  Float? @map("map_lat")
+  mapLng  Float? @map("map_lng")
+
+  title       String
+  titleNorm   String @map("title_norm")
+  description String
+
+  price            BigInt
+  pricePeriod      PricePeriod @default(NONE) @map("price_period")
+  priceNegotiable  Boolean     @default(false) @map("price_negotiable")
+  paymentAdvance   Int?        @map("payment_advance")
+  agencyFee        BigInt?  @map("agency_fee")
+  minimumStayMonths Int?       @map("minimum_stay_months")
+
+  bedrooms  Int?
+  bathrooms Int?
+  toilets   Int?
+  parkingSpaces Int? @map("parking_spaces")
+  plotSqm   Int? @map("plot_sqm")
+  builtSqm  Int? @map("built_sqm")
+  amenities String[] @default([])
+
+  deedType DeedType @default(NONE) @map("deed_type")
+  titleVerifiedAt DateTime? @db.Timestamptz @map("title_verified_at")
+
+  videoAssetId    String? @map("video_asset_id")
+  videoAsset      MediaAsset? @relation("ListingVideo", fields: [videoAssetId], references: [id])
+  deedDocAssetId  String? @map("deed_doc_asset_id")
+  deedDocAsset    MediaAsset? @relation("ListingDeedDoc", fields: [deedDocAssetId], references: [id])
+
+  posterId String @map("poster_id")
+  poster   User   @relation(fields: [posterId], references: [id])
+  agencyId String? @map("agency_id")
+  agency   AgentProfile? @relation("ListingAgency", fields: [agencyId], references: [id])
+
+  status      ListingStatus @default(DRAFT) @map("status")
+  submittedAt DateTime? @db.Timestamptz @map("submitted_at")
+  reviewedAt  DateTime? @db.Timestamptz @map("reviewed_at")
+  reviewerId  String?       @map("reviewer_id")
+  slaDueAt    DateTime? @db.Timestamptz @map("sla_due_at")
+  rejectionReason String?   @map("rejection_reason")
+
+  promotedUntil DateTime? @db.Timestamptz @map("promoted_until")
+  expiresAt     DateTime? @db.Timestamptz @map("expires_at")
+
+  viewCount         Int @default(0) @map("view_count")
+  contactClickCount Int @default(0) @map("contact_click_count")
+
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz @map("updated_at")
+  publishedAt DateTime? @db.Timestamptz @map("published_at")
+
+  media              ListingMedia[]
+  reviewEvents       ListingReviewEvent[]
+  reviewAssignments  ReviewAssignment[]
+  moderationSignals  ModerationSignal[]
+  contactReveals     ContactReveal[]
+  conversations      Conversation[]
+  reviews            Review[]
+  savedSearchMatches SavedSearchMatch[]
+  favourites         Favourite[]
+  titleDocuments     TitleDocument[]
+
+  @@index([status, kindCode, publishedAt])
+  @@index([kindCode, stateCode, status, price])
+  @@index([areaId, status])
+  @@index([lgaId, status])
+  @@index([posterId, status])
+  @@index([typeCode, status])
+  @@index([slaDueAt])
+  @@map("listings")
+}
+
+// Note on kind coherence: the `type` relation below is declared on the composite
+// key (type_code, kind_code), so Prisma itself emits a composite FOREIGN KEY
+// from listings(type_code, kind_code) to listing_types(code, kind_code). That
+// FK is the hard guarantee that a RENT type cannot attach to a SALE listing,
+// even via direct SQL. The BEFORE trigger in invariants.sql adds the readable
+// error message on top of it.
+
+model ListingMedia {
+  listingId    String     @map("listing_id")
+  listing      Listing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  mediaAssetId String     @map("media_asset_id")
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+  position     Int
+  isCover      Boolean    @default(false) @map("is_cover")
+
+  @@id([listingId, mediaAssetId])
+  @@unique([listingId, position])
+  @@map("listing_media")
+}
+
+// ===========================================================================
+// Media
+// ===========================================================================
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+enum MediaStatus {
+  PENDING
+  UPLOADING
+  UPLOADED
+  PROCESSING
+  READY
+  FAILED
+  QUARANTINED
+}
+
+enum ModerationStatus {
+  PENDING
+  CLEAR
+  FLAGGED
+  REJECTED
+}
+
+model MediaAsset {
+  id        String     @id @default(cuid())
+  ownerId   String     @map("owner_id")
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  kind      MediaKind
+  status    MediaStatus @default(PENDING)
+  /// For documents this is the MIME type; for video the source container.
+  mime      String
+  /// Size as uploaded. Retained so the storage-savings metric is measurable.
+  bytes     BigInt     @default(0)
+  /// Size actually stored. Differs from `bytes` because the worker rewrites
+  /// every image to a bounded WebP on the way in.
+  compressedBytes BigInt? @map("compressed_bytes")
+  width     Int?
+  height    Int?
+  durationMs Int?      @map("duration_ms")
+
+  /// Per-owner dedupe. Nigerian agencies re-upload the same photo across
+  /// dozens of listings; this collapses that at the storage layer.
+  contentHash String? @map("content_hash")
+
+  storageKey String? @map("storage_key")
+  /// Cloudflare Stream uid for video, which we never proxy.
+  streamUid  String? @map("stream_uid")
+  playbackHls String? @map("playback_hls")
+  posterUrl  String? @map("poster_url")
+
+  blurhash      String?
+  dominantColor String? @map("dominant_color")
+  /// Extracted from EXIF for geotagging, then stripped from the stored file so
+  /// the poster's home coordinates are not published.
+  exifGps       String? @map("exif_gps")
+  exifStripped  Boolean @default(false) @map("exif_stripped")
+
+  moderationStatus ModerationStatus @default(PENDING) @map("moderation_status")
+  moderationNotes String?          @map("moderation_notes")
+
+  createdAt DateTime  @default(now()) @db.Timestamptz @map("created_at")
+  readyAt   DateTime? @db.Timestamptz @map("ready_at")
+
+  listingMedia     ListingMedia[]
+  listingVideos    Listing[]      @relation("ListingVideo")
+  listingDeedDocs  Listing[]      @relation("ListingDeedDoc")
+  titleDocuments   TitleDocument[]
+  messageAttachments Message[]    @relation("MessageAttachment")
+
+  @@unique([ownerId, contentHash])
+  @@index([status, createdAt])
+  @@index([ownerId, kind])
+  @@map("media_assets")
+}
+
+// ===========================================================================
+// Review & approval workflow (1-6 hour SLA)
+// ===========================================================================
+
+enum ReviewAction {
+  SUBMITTED
+  ASSIGNED
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+  ESCALATED
+  AUTO_FLAGGED
+  EXPIRED
+}
+
+enum ReviewReasonCode {
+  PHOTO_QUALITY
+  PRICE_MISMATCH
+  MISSING_FIELD
+  WRONG_LOCATION
+  DUPLICATE_LISTING
+  SUSPECTED_SCAM
+  TITLE_MISMATCH
+  CONTACT_IN_BODY
+  POLICY_VIOLATION
+  OTHER
+}
+
+model ReviewSlaPolicy {
+  kindCode        String   @id @map("kind_code")
+  targetMinutes   Int      @map("target_minutes")
+  warnMinutes     Int      @map("warn_minutes")
+  escalateMinutes Int      @map("escalate_minutes")
+  updatedAt       DateTime @updatedAt @db.Timestamptz @map("updated_at")
+
+  @@map("review_sla_policies")
+}
+
+model ListingReviewEvent {
+  id        String       @id @default(cuid())
+  listingId String       @map("listing_id")
+  listing   Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  actorId   String?      @map("actor_id")
+  actor     User?        @relation(fields: [actorId], references: [id])
+  action    ReviewAction
+  reasonCode ReviewReasonCode? @map("reason_code")
+  note      String?
+  /// Set by the SLA worker when an action lands past the policy threshold.
+  slaBreached Boolean   @default(false) @map("sla_breached")
+  createdAt  DateTime    @default(now()) @db.Timestamptz @map("created_at")
+
+  @@index([listingId, createdAt])
+  @@index([action, createdAt])
+  @@index([slaBreached])
+  @@map("listing_review_events")
+}
+
+model ReviewAssignment {
+  id         String    @id @default(cuid())
+  listingId  String    @map("listing_id")
+  listing    Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  reviewerId String    @map("reviewer_id")
+  reviewer   User      @relation(fields: [reviewerId], references: [id])
+  assignedAt DateTime  @default(now()) @db.Timestamptz @map("assigned_at")
+  releasedAt DateTime? @db.Timestamptz @map("released_at")
+
+  @@index([reviewerId, releasedAt])
+  @@index([listingId, releasedAt])
+  @@map("review_assignments")
+}
+
+enum ModerationSignalKind {
+  IMAGE_NSFW
+  VIDEO_NSFW
+  PRICE_OUTLIER
+  DUPLICATE_MEDIA
+  CONTACT_IN_BODY
+  BANNED_TERM
+  TITLE_DOC_MISSING
+}
+
+enum SignalSeverity {
+  INFO
+  WARN
+  BLOCK
+}
+
+model ModerationSignal {
+  id        String              @id @default(cuid())
+  listingId String              @map("listing_id")
+  listing   Listing             @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  signal    ModerationSignalKind
+  severity  SignalSeverity
+  source    String
+  detail    Json?
+  issuedById String?            @map("issued_by_id")
+  issuedBy  User?               @relation("SignalIssuer", fields: [issuedById], references: [id])
+  resolvedAt DateTime? @db.Timestamptz @map("resolved_at")
+  createdAt DateTime            @default(now()) @db.Timestamptz @map("created_at")
+
+  @@index([listingId, severity])
+  @@index([createdAt])
+  @@map("moderation_signals")
+}
+
+model TitleDocument {
+  id         String   @id @default(cuid())
+  listingId  String   @map("listing_id")
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  deedType   DeedType
+  mediaAssetId String @map("media_asset_id")
+  mediaAsset MediaAsset @relation(fields: [mediaAssetId], references: [id])
+  status     String   @default("PENDING")
+  note       String?
+  reviewedById String? @map("reviewed_by_id")
+  reviewedAt   DateTime? @db.Timestamptz @map("reviewed_at")
+  createdAt  DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  @@index([listingId])
+  @@map("title_documents")
+}
+
+// ===========================================================================
+// Contact reveal (the only path that decrypts PII)
+// ===========================================================================
+
+model ContactReveal {
+  id         String   @id @default(cuid())
+  listingId  String   @map("listing_id")
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  viewerId   String   @map("viewer_id")
+  viewer     User     @relation("RevealViewer", fields: [viewerId], references: [id], onDelete: Cascade)
+  ownerId    String   @map("owner_id")
+  owner      User     @relation("RevealOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  channel    String   @default("WEB")
+  ipHash     String?  @map("ip_hash")
+  revealedAt DateTime @default(now()) @db.Timestamptz @map("revealed_at")
+  revokedAt  DateTime? @db.Timestamptz @map("revoked_at")
+
+  /// Dedupe key so repeat taps return the cached response instead of
+  /// re-decrypting, and so "who has seen my listing" is a cheap count.
+  @@unique([listingId, viewerId])
+  @@index([viewerId, revealedAt])
+  @@index([ownerId, revealedAt])
+  @@map("contact_reveals")
+}
+
+// ===========================================================================
+// Messaging
+// ===========================================================================
+
+enum ConversationStatus {
+  ACTIVE
+  BLOCKED
+  ARCHIVED
+}
+
+model Conversation {
+  id            String   @id @default(cuid())
+  listingId     String   @map("listing_id")
+  listing       Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  initiatorId   String   @map("initiator_id")
+  initiator     User     @relation("ConversationInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  ownerId       String   @map("owner_id")
+  owner         User     @relation("ConversationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  status        ConversationStatus @default(ACTIVE)
+  lastMessageAt DateTime? @db.Timestamptz @map("last_message_at")
+  lastMessagePreview String? @map("last_message_preview") @db.VarChar(200)
+  createdAt     DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  messages Message[]
+  reads    MessageRead[]
+
+  @@unique([listingId, initiatorId])
+  @@index([initiatorId, lastMessageAt])
+  @@index([ownerId, lastMessageAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String   @map("conversation_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String   @map("sender_id")
+  sender         User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body           String   @db.VarChar(4000)
+  attachmentMediaId String? @map("attachment_media_id")
+  attachment     MediaAsset? @relation("MessageAttachment", fields: [attachmentMediaId], references: [id])
+  /// Idempotency key for offline outbox replay.
+  clientMessageId String  @map("client_message_id")
+  moderationStatus ModerationStatus @default(PENDING) @map("moderation_status")
+  moderationNotes String? @map("moderation_notes")
+  editedAt       DateTime? @db.Timestamptz @map("edited_at")
+  deletedAt      DateTime? @db.Timestamptz @map("deleted_at")
+  createdAt      DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  /// When the recipient's client first fetched this message.
+  ///
+  /// `sent` is createdAt, `seen` is derived from the conversation read marker,
+  /// and `delivered` is this column: the recipient has it on screen but has
+  /// not opened it. Written once by the recipient's own fetch, never rewritten.
+  deliveredAt    DateTime? @db.Timestamptz @map("delivered_at")
+
+  readBy    MessageRead[] @relation("ReadMarker")
+
+  @@unique([conversationId, clientMessageId])
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+model MessageRead {
+  conversationId String   @map("conversation_id")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String   @map("user_id")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadMessageId String? @map("last_read_message_id")
+  lastReadMessage Message? @relation("ReadMarker", fields: [lastReadMessageId], references: [id], onDelete: SetNull)
+  lastReadAt     DateTime? @db.Timestamptz @map("last_read_at")
+
+  @@id([conversationId, userId])
+  @@map("message_reads")
+}
+
+// ===========================================================================
+// Reviews (credibility)
+// ===========================================================================
+
+enum ReviewEligibility {
+  REVEALED
+  STAY_RECORDED
+  ADMIN_OVERRIDE
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  PENDING
+  REJECTED
+  FLAGGED
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  listingId String   @map("listing_id")
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  authorId  String   @map("author_id")
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  ratingOverall Int  @map("rating_overall")
+  ratingCommunication Int? @map("rating_communication")
+  ratingAccuracy Int? @map("rating_accuracy")
+  ratingValue      Int? @map("rating_value")
+  body      String   @db.VarChar(4000)
+  eligibility ReviewEligibility
+  status      ReviewStatus @default(PUBLISHED)
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  votes ReviewVote[]
+
+  @@unique([listingId, authorId])
+  @@index([listingId, status, createdAt])
+  @@map("reviews")
+}
+
+model ReviewVote {
+  reviewId String   @map("review_id")
+  review   Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  userId   String   @map("user_id")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value    Int
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  @@id([reviewId, userId])
+  @@map("review_votes")
+}
+
+/// Post-tenancy confirmation, enabling reviews without a contact_reveal.
+model StayRecord {
+  id         String   @id @default(cuid())
+  listingId  String   @map("listing_id")
+  tenantId   String   @map("tenant_id")
+  ownerId    String   @map("owner_id")
+  startedAt  DateTime @db.Timestamptz @map("started_at")
+  endedAt    DateTime? @db.Timestamptz @map("ended_at")
+  ownerConfirmedAt DateTime? @db.Timestamptz @map("owner_confirmed_at")
+  tenantConfirmedAt DateTime? @db.Timestamptz @map("tenant_confirmed_at")
+  createdAt  DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  @@index([listingId])
+  @@map("stay_records")
+}
+
+// ===========================================================================
+// Saved searches
+// ===========================================================================
+
+enum NotifyChannel {
+  EMAIL
+  WHATSAPP
+  PUSH
+}
+
+enum NotifyCadence {
+  INSTANT
+  DAILY
+  WEEKLY
+}
+
+model SavedSearch {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  queryJson Json     @map("query_json")
+  notifyChannels NotifyChannel[] @default([]) @map("notify_channels")
+  cadence   NotifyCadence @default(DAILY)
+  lastRunAt DateTime? @db.Timestamptz @map("last_run_at")
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  matches SavedSearchMatch[]
+
+  @@index([userId])
+  @@map("saved_searches")
+}
+
+model SavedSearchMatch {
+  id            String      @id @default(cuid())
+  savedSearchId String      @map("saved_search_id")
+  savedSearch   SavedSearch @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
+  listingId     String      @map("listing_id")
+  listing       Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  notifiedAt    DateTime? @db.Timestamptz @map("notified_at")
+  createdAt     DateTime    @default(now()) @db.Timestamptz @map("created_at")
+
+  @@unique([savedSearchId, listingId])
+  @@map("saved_search_matches")
+}
+
+/**
+ * A single listing a user has shortlisted.
+ *
+ * Distinct from SavedSearch: that is a re-runnable filter, this is "keep this
+ * one". They answer different questions and conflating them loses both.
+ *
+ * The unique pair is what makes saving idempotent. A double-tap on a slow
+ * connection, or a retry after a dropped response, must not create two rows or
+ * toggle the listing out of the shortlist.
+ */
+model Favourite {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String   @map("listing_id")
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  note      String?  @db.VarChar(280)
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  @@unique([userId, listingId])
+  @@index([userId, createdAt])
+  @@map("favourites")
+}
+
+// ===========================================================================
+// Monetization: modeled, no live payments
+// ===========================================================================
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentProvider {
+  NOOP
+  PAYSTACK
+  FLUTTERWAVE
+  MONIEPOINT
+}
+
+model Plan {
+  code         String   @id
+  name         String
+  tier         Int
+  priceNgn     BigInt   @map("price_ngn")
+  billingPeriod String   @map("billing_period")
+  description  String?
+  isActive     Boolean  @default(true) @map("is_active")
+
+  entitlements Entitlement[]
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Entitlement {
+  planId     String @map("plan_id")
+  plan       Plan   @relation(fields: [planId], references: [code], onDelete: Cascade)
+  feature    String
+  /// JSON limit, e.g. {"amount":10,"period":"MONTH"} or {"bytes":5368709120}
+  limitJson  Json?  @map("limit_json")
+
+  @@id([planId, feature])
+  @@map("entitlements")
+}
+
+model Subscription {
+  id        String             @id @default(cuid())
+  userId    String             @map("user_id")
+  planCode  String             @map("plan_code")
+  plan      Plan               @relation(fields: [planCode], references: [code])
+  status    SubscriptionStatus @default(ACTIVE)
+  provider  PaymentProvider    @default(NOOP)
+  externalRef String?          @unique @map("external_ref")
+  startsAt  DateTime           @default(now()) @db.Timestamptz @map("starts_at")
+  endsAt    DateTime? @db.Timestamptz @map("ends_at")
+  createdAt DateTime           @default(now()) @db.Timestamptz @map("created_at")
+
+  @@index([userId, status])
+  @@map("subscriptions")
+}
+
+model ListingQuota {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  windowStart     DateTime @db.Timestamptz @map("window_start")
+  listingsUsed    Int      @default(0) @map("listings_used")
+  listingsGranted Int      @default(3) @map("listings_granted")
+  createdAt       DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  @@unique([userId, windowStart])
+  @@map("listing_quotas")
+}
+
+model UsageCounter {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  feature      String
+  periodStart  DateTime @db.Timestamptz @map("period_start")
+  consumed     BigInt   @default(0)
+  updatedAt    DateTime @updatedAt @db.Timestamptz @map("updated_at")
+
+  @@unique([userId, feature, periodStart])
+  @@map("usage_counters")
+}
+
+enum PaymentIntentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+model PaymentIntent {
+  id             String              @id @default(cuid())
+  userId         String              @map("user_id")
+  purpose        String
+  amountNgn      BigInt              @map("amount_ngn")
+  provider       PaymentProvider     @default(NOOP)
+  status         PaymentIntentStatus @default(PENDING)
+  providerRef    String?             @map("provider_ref")
+  idempotencyKey String              @unique @map("idempotency_key")
+  metadata       Json?
+  createdAt      DateTime            @default(now()) @db.Timestamptz @map("created_at")
+  completedAt    DateTime? @db.Timestamptz @map("completed_at")
+
+  @@index([userId, createdAt])
+  @@map("payment_intents")
+}
+
+// ===========================================================================
+// Audit (append-only)
+// ===========================================================================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?  @map("actor_id")
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+  actorRole  String?  @map("actor_role")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  /// Hashed rather than raw, so we retain abuse-detection signal without
+  /// retaining raw IPs.
+  ipHash     String?  @map("ip_hash")
+  userAgent  String?  @map("user_agent")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
+
+/// Platform-wide settings edited from the admin console.
+///
+/// One row per key, versioned by insertion rather than updated: the audit trail
+/// records who changed what, and keeping previous rows means a settings change
+/// can always be explained after the fact. Writes go through the admin console
+/// only; nothing reads this table from a hot path, so a stale read is harmless.
+model PlatformSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedBy String?  @map("updated_by")
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz @map("updated_at")
+
+  @@map("platform_settings")
+}
+
+// ===========================================================================
+// OTP challenges
+//
+// Termii sends the WhatsApp token first. We arm a 15-30s fallback timer; if no
+// `Delivered` webhook has arrived for the WhatsApp message_id by then, we send
+// the same code over the SMS channel. Delivery cost is minimised because SMS is
+// only spent when WhatsApp genuinely failed to deliver.
+// ===========================================================================
+
+// ===========================================================================
+// Rate limit counters
+//
+// Backed by the database rather than Redis so reveal and OTP budgets survive an
+// API restart, and so correctness does not depend on Redis availability. A
+// limiter outage fails closed, which is the correct direction for a security
+// control. Declared here rather than in invariants.sql so `prisma migrate dev`
+// owns the table and does not report drift.
+//
+// Written via raw SQL in RateLimiterService using INSERT ... ON CONFLICT, which
+// makes the increment atomic and avoids a read-then-write race.
+// ===========================================================================
+
+model RateLimitCounter {
+  key         String   @db.VarChar(200)
+  windowStart DateTime @default(now()) @map("window_start") @db.Timestamptz
+  count       BigInt   @default(0)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@id([key, windowStart])
+  @@index([windowStart])
+  @@map("rate_limit_counters")
+}
+
+enum OtpChannel {
+  WHATSAPP
+  SMS
+}
+
+enum OtpStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  VERIFIED
+  EXPIRED
+  ATTEMPTS_EXCEEDED
+}
+
+model OtpChallenge {
+  id     String     @id @default(cuid())
+  /// HMAC(index) of the phone; the plaintext phone is not stored here.
+  phoneIdx String   @map("phone_idx")
+  userId   String?  @map("user_id")
+
+  /// HMAC-SHA256 of the code with OTP_PEPPER. Never the plaintext.
+  codeHash String   @map("code_hash")
+
+  primaryChannel OtpChannel  @default(WHATSAPP) @map("primary_channel")
+  status         OtpStatus    @default(PENDING)
+
+  /// Termii message ids, so a webhook can be matched back to its challenge.
+  whatsappMessageId String?  @map("whatsapp_message_id")
+  smsMessageId      String?  @map("sms_message_id")
+
+  /// Arm date for the SMS fallback sweep. Null once delivered or abandoned.
+  smsFallbackDueAt DateTime? @db.Timestamptz @map("sms_fallback_due_at")
+  smsFallbackSentAt DateTime? @db.Timestamptz @map("sms_fallback_sent_at")
+  whatsappDeliveredAt DateTime? @db.Timestamptz @map("whatsapp_delivered_at")
+
+  attempts       Int       @default(0)
+  maxAttempts    Int       @default(5) @map("max_attempts")
+  expiresAt      DateTime @db.Timestamptz @map("expires_at")
+  verifiedAt     DateTime? @db.Timestamptz @map("verified_at")
+  ipHash         String?   @map("ip_hash")
+  createdAt      DateTime  @default(now()) @db.Timestamptz @map("created_at")
+
+  @@index([phoneIdx, createdAt])
+  @@index([status, smsFallbackDueAt])
+  @@index([expiresAt])
+  @@map("otp_challenges")
+}
+
+// ===========================================================================
+// Webhook inbox: idempotent processing of Termii delivery reports
+// ===========================================================================
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String
+  externalId  String   @map("external_id")
+  eventType   String   @map("event_type")
+  payload     Json
+  signatureValid Boolean @map("signature_valid")
+  processedAt DateTime? @db.Timestamptz @map("processed_at")
+  createdAt   DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  @@unique([provider, externalId])
+  @@index([processedAt])
+  @@map("webhook_events")
+}

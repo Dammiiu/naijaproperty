@@ -1,0 +1,37 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+.turbo/
+coverage/
+
+.env
+.env.local
+.env.*.local
+!.env.example
+
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+.DS_Store
+Thumbs.db
+
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# TypeScript incremental build state. These are machine-local: they record which
+# files were last compiled, so committing them makes a fresh checkout believe it
+# is already built and skip emitting output. This is the same trap that silently
+# emptied the contracts build inside the Docker image.
+*.tsbuildinfo
+
+# The Prisma schema path is apps/api. The packages/api entries that used to live
+# here never matched anything, so they were removed rather than left to imply the
+# database files were actually ignored.
+apps/api/prisma/*.db
+apps/api/prisma/migrations/dev.db*

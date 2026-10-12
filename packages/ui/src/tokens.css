@@ -1,0 +1,180 @@
+/**
+ * Naijaproperty design tokens.
+ *
+ * Two constraints drove these decisions:
+ *  1. Nigerian mobile data is expensive, so the palette is tuned for high
+ *     contrast on cheap LCD panels rather than soft pastel surfaces.
+ *  2. Trust badges are scarce (max two per card, from a closed vocabulary),
+ *     so badge colours are reserved and never reused for marketing.
+ */
+
+:root {
+  /* --- Brand ------------------------------------------------------------
+     Deep green is the primary. Nigerian real-estate convention leans on
+     green/earth, but this is deliberately distinct from PropertyPro's purple
+     so the two never read as the same product. */
+  --njp-green-50: #eefbf4;
+  --njp-green-100: #d6f5e3;
+  --njp-green-200: #b0ebcd;
+  --njp-green-300: #7adab0;
+  --njp-green-400: #43c28e;
+  --njp-green-500: #1da871;
+  --njp-green-600: #10885a;
+  --njp-green-700: #0d6c4a;
+  --njp-green-800: #0d563c;
+  --njp-green-900: #0b4733;
+  --njp-green-950: #04271c;
+
+  /* Earth accent for "NEW" and promotional surfaces. */
+  --njp-earth-400: #e0a94a;
+  --njp-earth-500: #c98a25;
+  --njp-earth-600: #a56c17;
+
+  /* --- Neutral ---------------------------------------------------------- */
+  --njp-ink-900: #0c1412;
+  --njp-ink-800: #16211e;
+  --njp-ink-700: #24322e;
+  --njp-ink-600: #3c4b46;
+  --njp-ink-500: #5b6b66;
+  --njp-ink-400: #859590;
+  --njp-ink-300: #b3c0bc;
+  --njp-ink-200: #d7dfdc;
+  --njp-ink-100: #ebf0ee;
+  --njp-ink-50: #f6f8f7;
+  --njp-white: #ffffff;
+
+  /* --- Semantic --------------------------------------------------------- */
+  --njp-bg: var(--njp-ink-50);
+  --njp-surface: var(--njp-white);
+  --njp-surface-sunken: var(--njp-ink-100);
+  --njp-border: var(--njp-ink-200);
+  --njp-border-strong: var(--njp-ink-300);
+  --njp-text: var(--njp-ink-900);
+  --njp-text-muted: var(--njp-ink-500);
+  --njp-text-subtle: var(--njp-ink-400);
+  --njp-text-inverse: var(--njp-white);
+
+  --njp-primary: var(--njp-green-600);
+  --njp-primary-hover: var(--njp-green-700);
+  --njp-primary-active: var(--njp-green-800);
+  --njp-primary-soft: var(--njp-green-50);
+  --njp-primary-soft-border: var(--njp-green-200);
+  --njp-focus-ring: var(--njp-green-400);
+
+  --njp-danger: #c02626;
+  --njp-danger-soft: #fdf0f0;
+  --njp-warning: #b45309;
+  --njp-warning-soft: #fef7ed;
+  --njp-info: #0b5fa5;
+  --njp-info-soft: #eff6fd;
+  --njp-success: var(--njp-green-600);
+  --njp-success-soft: var(--njp-green-50);
+
+  /* --- Badge palette ----------------------------------------------------
+     Closed vocabulary. `VERIFIED_TITLE` and `VERIFIED_OWNER` are trust claims
+     and use the brand green/blue. `HAS_VIDEO` and `NEW` are neutral signals.
+     No badge colour is ever used for promotional labels - that is the mistake
+     that makes PropertyPro's card grid unreadable. */
+  --njp-badge-verified: var(--njp-green-700);
+  --njp-badge-verified-bg: var(--njp-green-100);
+  --njp-badge-title: var(--njp-info);
+  --njp-badge-title-bg: var(--njp-info-soft);
+  --njp-badge-video: var(--njp-ink-700);
+  --njp-badge-video-bg: var(--njp-ink-100);
+  --njp-badge-new: var(--njp-earth-600);
+  --njp-badge-new-bg: #fdf4e3;
+
+  /* --- Typography ------------------------------------------------------- */
+  --njp-font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --njp-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --njp-text-xs: 0.75rem;
+  --njp-text-sm: 0.8125rem;
+  --njp-text-base: 0.9375rem;
+  --njp-text-md: 1rem;
+  --njp-text-lg: 1.125rem;
+  --njp-text-xl: 1.375rem;
+  --njp-text-2xl: 1.75rem;
+  --njp-text-3xl: 2.125rem;
+
+  --njp-weight-regular: 400;
+  --njp-weight-medium: 500;
+  --njp-weight-semibold: 600;
+  --njp-weight-bold: 700;
+
+  --njp-leading-tight: 1.2;
+  --njp-leading-normal: 1.5;
+  --njp-leading-relaxed: 1.65;
+
+  /* --- Spacing ---------------------------------------------------------- */
+  --njp-space-1: 0.25rem;
+  --njp-space-2: 0.5rem;
+  --njp-space-3: 0.75rem;
+  --njp-space-4: 1rem;
+  --njp-space-5: 1.25rem;
+  --njp-space-6: 1.5rem;
+  --njp-space-8: 2rem;
+  --njp-space-10: 2.5rem;
+  --njp-space-12: 3rem;
+  --njp-space-16: 4rem;
+  --njp-space-20: 5rem;
+
+  /* --- Radius ----------------------------------------------------------- */
+  --njp-radius-sm: 4px;
+  --njp-radius-md: 8px;
+  --njp-radius-lg: 12px;
+  --njp-radius-xl: 16px;
+  --njp-radius-2xl: 24px;
+  --njp-radius-full: 9999px;
+
+  /* --- Elevation -------------------------------------------------------- */
+  --njp-shadow-xs: 0 1px 2px rgb(12 20 18 / 0.06);
+  --njp-shadow-sm: 0 1px 3px rgb(12 20 18 / 0.08), 0 1px 2px rgb(12 20 18 / 0.04);
+  --njp-shadow-md: 0 4px 12px rgb(12 20 18 / 0.08), 0 2px 4px rgb(12 20 18 / 0.04);
+  --njp-shadow-lg: 0 12px 28px rgb(12 20 18 / 0.12), 0 4px 8px rgb(12 20 18 / 0.05);
+  --njp-shadow-focus: 0 0 0 3px var(--njp-green-200);
+
+  /* --- Motion ----------------------------------------------------------- */
+  --njp-duration-fast: 120ms;
+  --njp-duration-base: 200ms;
+  --njp-duration-slow: 320ms;
+  --njp-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --njp-ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* --- Layout ----------------------------------------------------------- */
+  --njp-container-max: 1280px;
+  --njp-container-text: 68ch;
+  --njp-header-height: 64px;
+  --njp-tabbar-height: 60px;
+
+  /* --- Z-index ---------------------------------------------------------- */
+  --njp-z-base: 0;
+  --njp-z-sticky: 100;
+  --njp-z-header: 200;
+  --njp-z-drawer: 300;
+  --njp-z-modal: 400;
+  --njp-z-toast: 500;
+}
+
+/* Respect reduced-motion globally rather than per component. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Data-saver mode. The client toggles this on the <html> element when
+   navigator.connection.saveData is true, capping image quality and
+   suppressing video autoplay. Nigerian mobile data is expensive enough that
+   this is a first-class feature, not a nicety. */
+html[data-saver='on'] {
+  --njp-shadow-md: var(--njp-shadow-xs);
+  --njp-shadow-lg: var(--njp-shadow-sm);
+}

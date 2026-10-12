@@ -1,0 +1,166 @@
+/* ===========================================================================
+   Poster dashboard.
+   =========================================================================== */
+
+.dashboard {
+  padding-block: var(--njp-space-6) var(--njp-space-16);
+}
+
+.dashboard__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--njp-space-3);
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: var(--njp-space-6);
+}
+
+.dashboard__title {
+  margin: 0;
+  font-size: var(--njp-text-xl, 1.375rem);
+}
+
+.dashboard__sub {
+  margin: var(--njp-space-1) 0 0;
+  color: var(--njp-text-muted);
+  font-size: var(--njp-text-sm);
+}
+
+.dashboard__group {
+  margin-bottom: var(--njp-space-8);
+}
+
+.dashboard__grouptitle {
+  margin: 0 0 var(--njp-space-1);
+  font-size: var(--njp-text-md, 1rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--njp-text-muted);
+}
+
+.dashboard__grouphint {
+  margin: 0 0 var(--njp-space-3);
+  color: var(--njp-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+/* --- Row ----------------------------------------------------------------- */
+
+.listingrow {
+  display: grid;
+  gap: var(--njp-space-4);
+  padding: var(--njp-space-4);
+  border: 1px solid var(--njp-border);
+  border-radius: var(--njp-radius-lg);
+  background: var(--njp-surface);
+}
+
+/* A listing the poster must act on is visually separated from the rest, so the
+   thing needing attention is not something you have to read to find. */
+.listingrow--action {
+  border-color: #e0b44a;
+  background: #fffdf7;
+}
+
+/* Thumb on the left on a desktop, above the text on a phone. */
+@media (min-width: 40rem) {
+  .listingrow {
+    grid-template-columns: 9rem minmax(0, 1fr) auto;
+    align-items: start;
+  }
+}
+
+.listingrow__thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--njp-radius-md, 0.5rem);
+  background: var(--njp-bg, #f6f8f7);
+}
+
+.listingrow__media {
+  min-width: 0;
+}
+
+.listingrow__kind {
+  margin: 0;
+  color: var(--njp-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.listingrow__title {
+  margin: 0.125rem 0 var(--njp-space-1);
+  font-size: 1rem;
+}
+
+.listingrow__title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.listingrow__title a:hover {
+  text-decoration: underline;
+}
+
+.listingrow__meta {
+  margin: 0 0 var(--njp-space-2);
+  color: var(--njp-text-muted);
+  font-size: 0.8125rem;
+}
+
+.listingrow__address {
+  margin: 0 0 var(--njp-space-2);
+  font-size: 0.8125rem;
+}
+
+.listingrow__address span {
+  display: inline-block;
+  min-width: 4.5rem;
+  color: var(--njp-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.listingrow__status {
+  margin: 0 0 var(--njp-space-2);
+  color: var(--njp-text-muted);
+  font-size: 0.8125rem;
+}
+
+/* Reviewer note. Quoted because it is their words, and it is the single most
+   useful thing on this page for a poster who has to fix the listing. */
+.listingrow__note {
+  margin: 0 0 var(--njp-space-2);
+  padding: var(--njp-space-2) var(--njp-space-3);
+  border-left: 3px solid var(--njp-border);
+  background: var(--njp-bg, #f6f8f7);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.listingrow__stats {
+  margin: 0;
+  color: var(--njp-text-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.listingrow__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--njp-space-2);
+  align-items: flex-start;
+}
+
+.resubmit {
+  display: grid;
+  gap: var(--njp-space-1);
+}
