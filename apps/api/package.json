@@ -20,6 +20,7 @@
     "prisma:studio": "prisma studio",
     "prisma:verify": "tsx prisma/verify.ts",
     "prisma:invariants": "tsx prisma/apply-invariants.ts",
+    "db:harden": "tsx scripts/harden-supabase-grants.ts",
     "verify:phase1": "tsx scripts/verify-phase1.ts",
     "verify:phase2": "tsx scripts/verify-phase2.ts",
     "test:media": "tsx scripts/test-media-primitives.ts",

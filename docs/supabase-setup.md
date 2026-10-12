@@ -62,8 +62,34 @@ What becomes publicly readable includes:
 - `stay_records`
 
 The encryption in the PII columns protects nothing if the ciphertext is
-publicly readable. Untick both. If you ever want the Data API back, enable it
-deliberately with explicit grants.
+publicly readable. Untick both.
+
+### Verify it, do not assume it
+
+Unticking the boxes is not sufficient on its own. Supabase has shipped projects
+with the grants already present, so check:
+
+```sql
+select count(*) as exposed
+from information_schema.tables
+where table_schema = 'public'
+  and has_table_privilege('anon', format('%I.%I', table_schema, table_name), 'SELECT');
+```
+
+**This returned 39 on a project created with the defaults.** Every table.
+
+To fix it, run the repeatable script rather than ad-hoc SQL:
+
+```powershell
+npm run db:harden -w @naijaproperty/api
+```
+
+It revokes the grants, revokes the **default privileges** so the next migration
+does not re-arm the hole, then verifies and fails loudly if anything is still
+reachable. It is idempotent.
+
+Run it once after the first migration, and again after any migration that adds
+tables.
 
 ### Why not connect GitHub
 
