@@ -7,12 +7,23 @@ import './admin.css';
 import './post.css';
 import './dashboard.css';
 
+import { webOrigin } from '@/lib/constants';
+
 const siteName = process.env.NEXT_PUBLIC_SITE_NAME ?? 'Naijaproperty';
 const description =
   'Buy and rent property across all 36 states and the FCT. Every listing is reviewed by our team before it goes live, with video walkthroughs and title verification.';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_WEB_URL ?? 'http://localhost:3000'),
+  /*
+   * Blank-safe on purpose.
+   *
+   * This was `new URL(process.env.NEXT_PUBLIC_WEB_URL ?? 'http://localhost:3000')`,
+   * and `??` does not catch an empty string. A deploy where NEXT_PUBLIC_WEB_URL
+   * is declared but blank produced `new URL('')`, which threw ERR_INVALID_URL
+   * during `next build` and surfaced as the misleading "Failed to collect page
+   * data for /_not-found" rather than as a configuration error.
+   */
+  metadataBase: new URL(webOrigin()),
   title: {
     default: `${siteName} | Property for Rent and Sale in Nigeria`,
     template: `%s | ${siteName}`,

@@ -10,6 +10,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { ListingCardView } from '@/components/listing-card';
+import { API_URL } from '@/lib/constants';
 import type { ListingCard } from '@naijaproperty/contracts';
 
 /**
@@ -21,12 +22,9 @@ const fetchCache = new Map<string, Promise<{ items: ListingCard[] }>>();
 function getBaseUrl(): string {
   // On the server, we need an absolute URL. On the client, relative works.
   if (typeof window === 'undefined') {
-    // Server-side: use the internal API URL or fallback
-    return (
-      process.env.INTERNAL_API_URL ??
-      process.env.NEXT_PUBLIC_API_URL ??
-      'http://localhost:4000'
-    ).replace(/\/+$/, '');
+    // Blank-safe: reuses API_URL rather than repeating the `??` chain, which
+    // does not fall back when the variable is set to an empty string.
+    return API_URL;
   }
   // Client-side: relative URL works
   return '';

@@ -37,11 +37,13 @@ const ACCESS_TTL_MS = 13 * 60 * 1000;
 const ACCESS_REFRESH_MARGIN_MS = 60 * 1000;
 
 function apiUrl(): string {
-  return (
-    process.env.INTERNAL_API_URL ??
-    process.env.NEXT_PUBLIC_API_URL ??
-    'http://localhost:4000'
-  ).replace(/\/+$/, '');
+  // `??` alone does not fall back when the variable is set to an empty string,
+  // which a blank CI secret or a forwarded Dockerfile ARG produces. Trimming
+  // first means blank is treated as absent and the local default still applies.
+  const candidate =
+    process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL;
+  const trimmed = candidate?.trim();
+  return (trimmed ? trimmed : 'http://localhost:4000').replace(/\/+$/, '');
 }
 
 export async function middleware(request: NextRequest) {

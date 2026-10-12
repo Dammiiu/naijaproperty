@@ -55,16 +55,23 @@ RUN npm run build --workspace @naijaproperty/contracts \
 # NEXT_PUBLIC_* values are inlined into the client bundle at build time, so they
 # are build arguments rather than runtime environment. Passing them only at
 # runtime is the classic way to ship a bundle pointing at localhost.
-#
-# Defaults are deliberately empty rather than localhost: a build that silently
-# defaults to http://localhost:3000 produces a site whose API calls all fail in
-# production, which is much harder to diagnose than a missing variable.
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_WEB_URL
 ARG NEXT_PUBLIC_SITE_NAME=Naijaproperty
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL
 ENV NEXT_PUBLIC_SITE_NAME=$NEXT_PUBLIC_SITE_NAME
+
+# Fail loudly rather than shipping a bundle that points at localhost.
+#
+# The app itself treats a blank NEXT_PUBLIC_* as absent and falls back to
+# localhost, which is the right behaviour for `npm run build` on a laptop and the
+# wrong behaviour for a deploy image: the result is a site that renders but whose
+# every API call goes to 127.0.0.1, and nothing fails until a user clicks.
+#
+# The check lives in a script rather than inline here so it stays readable and is
+# runnable on its own.
+RUN node apps/web/scripts/require-public-env.mjs
 
 # NODE_ENV=production also turns off source maps in the client bundle.
 ENV NODE_ENV=production
