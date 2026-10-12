@@ -1,0 +1,211 @@
+# Continuous integration.
+#
+# Why this exists
+# ---------------
+# Two independent reasons, both learned the hard way.
+#
+# 1. A malformed apps/api/package.json was committed and only surfaced when the
+#    Docker build tried to resolve the npm workspace tree. GitHub accepted it, the
+#    local server kept running, and nothing complained until deployment. Any push
+#    that leaves JSON unparseable now fails here instead.
+#
+# 2. Railway and Cloudflare both build straight from this repository. They have no
+#    staging step, so an unreviewed commit goes to a build that costs money and
+#    that someone has to wait on. A red check here is much cheaper than a red
+#    deploy.
+#
+# The integration job mirrors the real runtime: PostGIS Postgres and Redis, the
+# same versions as infra/docker-compose.yml. Running against SQLite or a plain
+# Postgres would not exercise the spatial column or the trigram indexes, which is
+# precisely where the schema is unusual.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  # A newer push to the same branch makes an in-flight run irrelevant.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Fast gate. No database, runs in about a minute, catches the cheap mistakes.
+  # ---------------------------------------------------------------------------
+  verify:
+    name: Validate, typecheck and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # Every workspace manifest is parsed before anything else runs.
+      #
+      # `npm ci` itself resolves the workspace tree from these files, so a
+      # malformed package.json surfaces as a confusing resolver error several
+      # steps later. Checking up front turns that into an obvious failure here.
+      - name: Validate JSON is well formed
+        run: |
+          set -euo pipefail
+          failed=0
+          while IFS= read -r file; do
+            if ! node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$file"; then
+              echo "::error file=$file::invalid JSON"
+              failed=1
+            fi
+          done < <(git ls-files '*.json')
+          if [ "$failed" -ne 0 ]; then
+            echo "One or more JSON files are malformed. Committing broken JSON breaks every deploy."
+            exit 1
+          fi
+          echo "All JSON files parse."
+
+      # Lockfile must match the manifests, or `npm ci` fails. Worth stating
+      # explicitly because the error message is notoriously opaque.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Contracts must build before anything that imports them
+        run: npm run build --workspace @naijaproperty/contracts
+
+      - name: UI must build before the web app that imports it
+        run: npm run build --workspace @naijaproperty/ui
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+  # ---------------------------------------------------------------------------
+  # Full suite. Needs the real database.
+  # ---------------------------------------------------------------------------
+  integration:
+    name: Integration suites
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: naijaproperty
+          POSTGRES_PASSWORD: naijaproperty
+          POSTGRES_DB: naijaproperty
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U naijaproperty -d naijaproperty"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+
+    env:
+      DATABASE_URL: postgresql://naijaproperty:naijaproperty@localhost:5432/naijaproperty?schema=public
+      REDIS_URL: redis://localhost:6379
+      API_URL: http://localhost:4000
+      WEB_URL: http://localhost:3000
+      API_PORT: '4000'
+      NODE_ENV: development
+      # Raises the auth rate limits so the suites do not throttle themselves.
+      # Gated in the API on a non-production environment.
+      NJP_E2E: '1'
+      # Dummy secrets. The suites exercise validation and authorisation, never a
+      # real credential exchange, and a real secret must never enter CI.
+      JWT_ACCESS_SECRET: ci-access-secret-not-used-in-production
+      JWT_REFRESH_SECRET: ci-refresh-secret-not-used-in-production
+      OTP_PEPPER: ci-otp-pepper-not-used-in-production
+      PII_ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate the Prisma client
+        run: npm run prisma:generate --workspace @naijaproperty/api
+
+      # migrate dev needs a shadow database; deploy does not. CI wants exactly the
+      # command production runs, so a migration that only works under `dev` is
+      # caught here rather than on Railway.
+      - name: Migrate
+        run: npm run db:deploy
+
+      # invariants.sql is applied by hand, NOT by migrate deploy. A fresh database
+      # that skips this step has the kind partition and its triggers missing while
+      # the application still boots, which is the worst kind of failure: nothing
+      # errors until a rent listing is stored under a sale type.
+      - name: Apply database invariants
+        run: npm run db:invariants
+
+      - name: Seed the demo dataset
+        run: npm run db:demo
+
+      - name: Build
+        run: npm run build
+
+      # The suites are HTTP clients. They drive a running API rather than
+      # importing it, so the thing under test is the same code path production
+      # uses, including routing, guards and error shapes.
+      - name: Start the API
+        run: |
+          node --env-file-if-exists=.env apps/api/dist/main.js &
+          for i in $(seq 1 40); do
+            if curl -sf http://localhost:4000/health > /dev/null; then
+              echo "API is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API did not become healthy in time"
+          exit 1
+
+      - name: Database schema verification
+        run: npm run prisma:verify --workspace @naijaproperty/api
+
+      - name: Phase 1 suites
+        run: npm run verify:phase1 --workspace @naijaproperty/api
+
+      - name: Phase 2 suites
+        run: npm run verify:phase2 --workspace @naijaproperty/api
+
+      - name: Messaging suites
+        run: npm run verify:messages --workspace @naijaproperty/api
+
+      - name: Review suites
+        run: npm run verify:reviews --workspace @naijaproperty/api
+
+      - name: Media primitive suites
+        run: npm run test:media --workspace @naijaproperty/api
+
+      - name: tus resumable upload suites
+        run: npm run test:tus --workspace @naijaproperty/web
+
+      # Prints its totals and exits non-zero on any failure, so a red result here
+      # fails the job rather than needing someone to read the log.
+      - name: Harnesses self-clean their fixtures
+        if: always()
+        run: npm run clean:fixtures --workspace @naijaproperty/api
