@@ -21,8 +21,22 @@ export const envSchema = z.object({
   API_URL: z.string().url().default('http://localhost:4000'),
   API_PORT: z.coerce.number().int().positive().default(4000),
 
+  /*
+   * Pool size is set with `connection_limit` in the URL itself, not here.
+   *
+   * This file used to declare DATABASE_POOL_MAX, and PrismaService never read
+   * it: the client is constructed with only `{ url }`, so Prisma fell back to
+   * its own default of CPU-count x 2 + 1. Setting the variable on a PaaS host
+   * therefore did nothing at all while appearing in the environment as though it
+   * were being honoured.
+   *
+   * Two ways to configure the same thing, one of them silently inert, is how a
+   * pool gets oversized and takes out the database provider's connection limit.
+   * There is now exactly one place to set it, and it is the URL.
+   *
+   *   postgresql://...?schema=public&pgbouncer=true&connection_limit=5
+   */
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
-  DATABASE_POOL_MAX: z.coerce.number().int().positive().default(20),
   REDIS_URL: z.string().default('redis://localhost:6379'),
 
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 chars'),
