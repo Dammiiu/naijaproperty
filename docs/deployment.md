@@ -3,11 +3,25 @@
 Where each piece of Naijaproperty runs in production, and why it cannot all go
 in one place.
 
+**Chosen topology: Cloudflare (web, media, DNS) + Railway (API) + Supabase
+(Postgres). Source of truth is GitHub, with all three platforms deploying from
+it.**
+
 The short version: **Cloudflare hosts the web app and the media. The API and the
 database must run somewhere with a real Node runtime and a real Postgres.** This
 is not a preference. It is enforced by the dependencies.
 
 ---
+
+## What is already done
+
+| Artefact | State |
+|---|---|
+| `apps/api/Dockerfile` | Written, built, and **verified running against a live database** (health 200, search returns correctly-rated listings) |
+| `apps/web/Dockerfile` | Written, uses `output: 'standalone'`, not yet built |
+| `.dockerignore` | Written. Fixes a real bug, see below |
+| `docs/deployment.md` | This file |
+| Git history | Initial commit, 218 files, verified free of secrets |
 
 ## The constraint that decides the shape
 
@@ -21,44 +35,85 @@ changes that:
 | `@prisma/client` | Ships a platform-specific query engine binary; Workers has no writable filesystem. |
 | `ioredis` | Needs a raw TCP socket. Workers only allow `fetch` to HTTP(S). |
 
-Workers also cannot run Postgres at all. So the API needs a container host, and
-the database needs a managed Postgres that supports the extensions below.
+Workers also cannot run Postgres at all.
 
-`apps/web` has **no** such blockers. It has no native dependencies, its
-middleware is already Edge-safe (`atob`, no `Buffer`), and it does not use
-`next/image`, so there is no `sharp` requirement and no image optimizer to run.
+`apps/web` has **no** such blockers. Verified:
 
----
-
-## Target topology
-
-```
-                    Cloudflare (DNS, WAF, CDN)
-                             |
-        +--------------------+--------------------+
-        |                                         |
-   Workers (web)                            api.example.com
-   @opennextjs/cloudflare                        |
-        |                                    Render (container)
-        |                                         |
-        +------------> api  <---------------------+
-                    Supabase Postgres
-```
-
-| Piece | Host | Status |
-|---|---|---|
-| `apps/web` | Cloudflare Workers | Dockerfile/OpenNext config to add |
-| `apps/api` | Render | **Done.** `apps/api/Dockerfile`, built and verified |
-| Postgres | Supabase | Needs the 5 extensions enabled |
-| Redis | Render Redis or Upstash | Needs `REDIS_URL` |
-| Images | Cloudflare R2 | Already live |
-| Video | Cloudflare Stream | Blocked on token scope, see below |
+- No native dependencies (only `next`, `react`, `hls.js` and workspace packages).
+- `src/middleware.ts` is already Edge-safe: it uses `atob`, never `Buffer`, and
+  already reads `INTERNAL_API_URL` so the edge is not tied to a public URL.
+- **No `next/image` anywhere.** All ten image usages are plain `<img>` tags
+  pointing directly at R2 or Stream URLs, so there is no image optimizer and no
+  `sharp` requirement. The `images` block in `next.config.ts` is inert.
 
 ---
 
-## Database: the extension requirement
+## Railway (API)
 
-This is the single most likely thing to break a deployment, so it is worth being
+Railway builds from a Dockerfile. Because this is a monorepo and the Dockerfile
+is not at the root, two settings are required or Railway will fail to build.
+
+| Railway setting | Value |
+|---|---|
+| Root directory | *(leave blank)* |
+| Dockerfile path | `apps/api/Dockerfile` |
+
+If the Root Directory field is left blank and the Dockerfile path is set, Railway
+builds from the repository root, which is what the Dockerfile expects. Setting a
+root directory to `apps/api` would break it, because the build needs
+`package-lock.json` and the sibling workspace packages.
+
+### Environment variables
+
+Required from first boot:
+
+```
+NODE_ENV=production
+DATABASE_URL          # Supabase pooled connection string, see below
+REDIS_URL             # Railway Redis, or Upstash
+WEB_URL=https://naijaproperty.ng
+API_URL=https://api.naijaproperty.ng
+
+JWT_ACCESS_SECRET     # openssl rand -base64 48
+JWT_REFRESH_SECRET    # openssl rand -base64 48
+OTP_PEPPER            # openssl rand -base64 32
+PII_ENCRYPTION_KEY    # 32 bytes, hex
+```
+
+Optional integrations. `assertConfigured()` only hard-fails in production for a
+feature you are actually enabling, so leaving these unset does not stop boot:
+
+```
+R2_ACCOUNT_ID / R2_BUCKET / R2_ENDPOINT / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_PUBLIC_URL
+CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_STREAM_TOKEN / CLOUDFLARE_STREAM_WEBHOOK_SECRET
+TERMII_* / SMTP_* / GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / TURNSTILE_SECRET_KEY
+```
+
+**`PII_ENCRYPTION_KEY` is not rotatable casually.** It envelope-encrypts every
+phone number and address in the database. Generating a new one makes existing rows
+undecryptable. Set it once, in Railway's secret store, and do not regenerate it.
+
+### Migrations
+
+Migrations must **not** run on container start. Two replicas booting together
+would race, and two processes applying the same migration is a production outage.
+
+Railway does not have a Render-style pre-deploy hook, so run migrations manually
+against the production database, once, before pointing the service at traffic:
+
+```
+DATABASE_URL=<supabase pooled url> npm run db:deploy
+```
+
+That is `prisma migrate deploy`. Never `migrate dev` against production.
+
+---
+
+## Supabase (Postgres)
+
+### The extension requirement
+
+This is the most likely thing to break the deployment, so it is worth being
 explicit.
 
 `schema.prisma` declares:
@@ -75,97 +130,77 @@ geom  Unsupported("geometry(Polygon, 4326)")
 
 Consequences:
 
-- **Render's plain PostgreSQL cannot be used.** It has no PostGIS. The schema
-  will not migrate.
-- **Supabase works**, but PostGIS and the others must be enabled on the project
-  before the first migration runs. Supabase has PostGIS available in its
-  extension list; enable `postgis`, `pg_trgm`, `citext`, `btree_gin`,
+- **Any plain Postgres without PostGIS will fail to migrate.** This rules out
+  Render's PostgreSQL and Railway's PostgreSQL plugin.
+- **Supabase works**, but all five extensions must be enabled *before* the first
+  migration. Supabase ships PostGIS as an option in
+  `Database > Extensions`; enable `postgis`, `pg_trgm`, `citext`, `btree_gin` and
   `unaccent`.
-- **Neon works**, with the same caveat: extensions are per-branch and must be
-  enabled before migrating.
 
-Always enable extensions **before** the first `prisma migrate deploy`. A failed
-migration leaves `_prisma_migrations` in a partial state and needs manual
-recovery.
+A failed migration leaves `_prisma_migrations` in a partial state and needs manual
+recovery, so enable extensions first and verify before migrating.
+
+### Connection strings
+
+Use the **pooled** string (port 6543, the "Connection pooler" in the dashboard),
+not the direct one, once there is more than one API replica:
+
+```
+# pooled, for the running API
+DATABASE_URL=postgresql://postgres.[ref]:[pw]@[ref].pooler.supabase.com:6543/postgres?schema=public&connection_limit=10
+
+# direct, for migrations only
+# ...:5432/postgres?schema=public
+```
+
+Pooled connections do not support prepared statements or interactive
+transactions in every mode. If Prisma complains, use the transaction pooler
+(6543 with `pgbouncer=true`) rather than session mode.
+
+### Also needed from Supabase
+
+- Redis. `apps/api` uses `ioredis`, which needs a TCP socket, so Supabase's
+  built-in Redis is not a drop-in. Use Railway Redis or Upstash and set
+  `REDIS_URL`.
 
 ---
 
-## API deployment (Render)
+## Cloudflare Workers (web)
 
-The image is `apps/api/Dockerfile`, built from the **repository root**:
+The web app is Workers-compatible. It needs `@opennextjs/cloudflare`, which is
+**not installed yet**. That is the remaining piece of work.
 
-```bash
-docker build -f apps/api/Dockerfile -t njp-api .
-```
+Recommended order, so a compatibility problem never reaches the real domain:
 
-### Render service settings
+1. Deploy to the default `*.workers.dev` subdomain. No DNS involved, nothing
+   customer-facing at stake.
+2. Verify auth, listing detail, image loading, messaging and reviews against the
+   production API.
+3. Only then attach the custom domain.
 
-| Setting | Value |
+Audit before the first deploy: the edge runtime has no `Buffer`, `fs`, `node:crypto`
+or raw TCP. `middleware.ts` already complies. Server components need checking.
+
+---
+
+## GitHub
+
+Source of truth for all three platforms. Deploy by pushing.
+
+To push, you need either:
+
+- GitHub CLI installed and authenticated, or
+- a remote plus a Personal Access Token.
+
+Neither is configured on this machine. `gh` is not installed and no remote is set.
+
+Once pushed:
+
+| Platform | Deploy trigger |
 |---|---|
-| Root directory | leave blank (the Dockerfile path is set in the Dockerfile field) |
-| Dockerfile path | `./apps/api/Dockerfile` |
-| Runtime | Node 22 |
-| Health check path | `/health` |
-
-### Environment
-
-Copy `.env.example` and set these. Everything else can stay unset until the
-corresponding integration is ready, because `assertConfigured()` only hard-fails
-in production for a feature you are actually turning on.
-
-Required from first boot:
-
-```
-NODE_ENV=production
-DATABASE_URL          # pooled connection string from Supabase
-REDIS_URL
-WEB_URL               # https://naijaproperty.ng
-API_URL               # https://api.naijaproperty.ng
-JWT_ACCESS_SECRET     # openssl rand -base64 48
-JWT_REFRESH_SECRET    # openssl rand -base64 48
-OTP_PEPPER            # openssl rand -base64 32
-PII_ENCRYPTION_KEY    # 32 bytes hex
-```
-
-**`PII_ENCRYPTION_KEY` is not rotatable casually.** It envelope-encrypts every
-phone number and address in the database. Generating a new one makes existing
-rows undecryptable. Set it once, store it in Render's secret store, and do not
-regenerate it.
-
-### Migrations
-
-Do **not** run migrations on container start. Two replicas booting together would
-race, and two processes applying the same migration is a production outage.
-
-Set Render's **Pre-deploy Command**:
-
-```
-npm run db:deploy
-```
-
-which runs `prisma migrate deploy`. This runs once, before traffic shifts.
-
-`prisma/invariants.sql` is applied separately and is not part of migrate deploy.
-Check `npm run prisma:invariants` before relying on it in production.
-
----
-
-## Web deployment (Cloudflare Workers)
-
-The web app needs `@opennextjs/cloudflare`. That is not installed yet. When it
-is added:
-
-- `apps/web/next.config.ts` needs the OpenNext wrapper.
-- `INTERNAL_API_URL` is already read by `apps/web/src/middleware.ts`; set it to
-  the API origin so the edge does not depend on `NEXT_PUBLIC_API_URL`.
-- Node.js APIs are unavailable in the edge runtime. `middleware.ts` already
-  avoids them. Audit server components before the first deploy: `Buffer`, `fs`,
-  `node:crypto` and raw TCP will all fail.
-
-**Recommendation: deploy the web app to a conventional Node host first**, confirm
-the whole system works end to end, then move the web app to Workers. There is no
-current production to preserve, but there is also no reason to take on the
-OpenNext compatibility risk in the same week the database moves.
+| Railway | Connect the GitHub repo; deploys on push to the default branch |
+| Cloudflare Workers | Connect the GitHub repo in Workers Builds; builds on push |
+| Supabase | Migrations are run manually, not on push |
 
 ---
 
@@ -173,14 +208,37 @@ OpenNext compatibility risk in the same week the database moves.
 
 | Issue | State |
 |---|---|
-| Cloudflare Stream | Token has zero Stream scope (account read returns 200, all `/stream` endpoints return 403). Needs **Account → Stream → Edit**. |
+| Cloudflare Stream | Token has zero Stream scope: account read returns 200, every `/stream` endpoint returns 403. Needs **Account -> Stream -> Edit**. |
 | Stream webhook secret | `CLOUDFLARE_STREAM_WEBHOOK_SECRET` is a placeholder. The handler fails closed without it. |
-| R2 CORS | Browser photo upload fails. `http://localhost:3000` is missing from AllowedOrigins; the rule was written when the dev server was on 3100. |
+| R2 CORS | Browser photo upload fails. `http://localhost:3000` is missing from AllowedOrigins; the rule was written when the dev server ran on 3100. Add it in R2 -> Settings -> CORS. |
 | Termii WhatsApp OTP | Sender ID unregistered. SMS fallback only. |
 | Map view | No lat/lng on listings. Needs area/LGA centroid geocoding. |
+| Termii API key | Was pasted into chat and is in `.env`. Treat as exposed and rotate. |
 
 R2 and Stream are already in the right account and the R2 bucket is live, so
 these are credential fixes rather than architecture work.
+
+---
+
+## Two bugs found while preparing the deploy
+
+Recorded because both produce confusing failures rather than honest errors.
+
+**`--env-file` crashes on a missing file.** The API start script was
+`node --env-file=../../.env dist/main.js`. On any platform that injects
+environment variables rather than shipping a `.env` file, that exits 9 and the
+service never boots. Changed to `--env-file-if-exists`, which keeps local
+development identical and exits 0 when the file is absent.
+
+**Stale `tsconfig.tsbuildinfo` silently emptied a build.** The repo had no
+`.dockerignore`, so the host's `node_modules` (1.4 GB) was copied into the build
+context and the Linux tar writer refused the Windows workspace symlinks. Adding
+`.dockerignore` fixed the copy, but `tsc -b` still emitted nothing: Docker
+matches ignore patterns against the path relative to the context root and a bare
+`*` does not cross directory boundaries, so `*.tsbuildinfo` never matched
+`packages/contracts/tsconfig.tsbuildinfo`. The build-info files were copied in,
+`tsc -b` decided it was up to date, and the API then failed to resolve
+`@naijaproperty/contracts`. The pattern is now `**/*.tsbuildinfo`.
 
 ---
 
@@ -195,3 +253,6 @@ npm run start -w @naijaproperty/web
 ```
 
 Servers: web `http://localhost:3000`, api `http://localhost:4000`.
+Infra containers use `restart: unless-stopped`, so they survive a Docker or host
+restart. The two app servers do not: they are foreground processes and die with
+the shell that started them.
