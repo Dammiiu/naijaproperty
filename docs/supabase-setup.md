@@ -124,6 +124,88 @@ Expect five rows.
 
 ---
 
+## Step 3b — Fix the search path (do this before migrating)
+
+**This is the step that is not on any Supabase tutorial and it will stop you.**
+
+Run this in the SQL editor **before** `prisma migrate deploy`:
+
+```sql
+ALTER DATABASE postgres SET search_path = public, extensions;
+```
+
+### Why
+
+Supabase installs every extension into a schema called `extensions`, not into
+`public`. Check it yourself:
+
+```sql
+select e.extname, n.nspname as schema
+from pg_extension e join pg_namespace n on n.oid = e.extnamespace
+order by e.extname;
+```
+
+`citext`, `postgis`, `pg_trgm` and the rest all report `extensions`.
+
+The migration SQL refers to those types **unqualified**. Locally that works,
+because the PostGIS Docker image installs extensions into `public`. On Supabase it
+does not, and the first migration dies:
+
+```
+ERROR: type "citext" does not exist
+```
+
+The `CREATE EXTENSION IF NOT EXISTS` lines in the migration are no-ops here,
+because the extensions already exist, so they never add `extensions` to the path.
+
+### The trap inside the trap
+
+Setting `ALTER DATABASE ... search_path` alone is **not enough** if your
+connection string contains `?schema=public`. Prisma reads that parameter and
+explicitly sets `search_path` to `public` on every connection, overriding the
+database default.
+
+So the rule is:
+
+| Where | Connection string |
+|---|---|
+| **Migrations** | **omit `?schema=public`** |
+| **Railway** | **omit `?schema=public`** |
+
+Without the parameter, the database-level setting applies and
+`search_path = "$user", public, extensions`, which resolves `citext` and PostGIS
+functions correctly. Prisma defaults to the `public` schema anyway when the
+parameter is absent, so nothing is lost.
+
+Leaving `?schema=public` on the Railway URL would also break every PostGIS call
+at runtime, not just at migration time.
+
+### Verify before you migrate
+
+```sql
+select 'x'::citext as works;
+```
+
+If that errors, the search path is not fixed yet.
+
+### If a migration already failed
+
+It will have written its record and nothing else. Clear it and re-run:
+
+```sql
+DROP TABLE IF EXISTS _prisma_migrations;
+```
+
+Only do that after confirming the database has no real tables:
+
+```sql
+select table_name from information_schema.tables where table_schema = 'public';
+```
+
+On a brand new project the only entry is `_prisma_migrations` itself.
+
+---
+
 ## Step 4 — Copy both connection strings
 
 **Project Settings → Database → Connection string.**
@@ -146,21 +228,46 @@ They look similar. The port is the difference: **5432 direct, 6543 pooled.**
 
 ### Connection string parameters
 
+Do **not** add `?schema=public`. See step 3b. Omitting it is what lets the
+database-level `search_path` apply.
+
 Append to the pooled string:
 
 ```
-?schema=public&pgbouncer=true&connection_limit=5
+?pgbouncer=true&connection_limit=5
 ```
 
 - `pgbouncer=true` tells Prisma to use transaction mode, which is what the
   pooler expects. Without it, prepared statements conflict with pooling.
-- `connection_limit=5` is deliberate. Supabase's pooler has a hard ceiling of
-  client connections per project, and Prisma's default (CPU count x 2 + 1) can
-  exceed it. Five per replica leaves room for the migration process and for
+- `connection_limit=5` is the pool size per replica. Prisma's default is CPU
+  count x 2 + 1, which on a multi-core host can exceed Supabase's project
+  ceiling. Five per replica leaves room for the migration process and for
   Supabase's own internal connections.
+
+There is no separate pool-size environment variable. An earlier
+`DATABASE_POOL_MAX` was declared in the config but never read by the Prisma
+client, so setting it on a host would have done nothing while looking configured.
+Pool size is configured in this URL and nowhere else.
 
 Do **not** append `connection_limit` to the direct string used for migrations.
 Migration tooling manages its own connections there.
+
+### Direct connections may not be reachable
+
+On Supabase's current platform, `db.<ref>.supabase.co` sometimes has **no DNS
+record at all**. The project API hostname resolves, so the project exists, but the
+direct database hostname does not.
+
+If `P1001 Can't reach database server` comes back immediately, use the pooler
+host for migrations too:
+
+```
+postgresql://postgres.PROJECTREF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
+```
+
+The port `5432` on the **pooler** host is session mode and works for
+`migrate deploy`. Port `6543` on the same host is transaction mode and will not:
+it cannot run migrations that use advisory locks, which Prisma relies on.
 
 ---
 
