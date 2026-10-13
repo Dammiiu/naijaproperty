@@ -91,9 +91,13 @@ ENV NODE_ENV=production
 
 # Bind every interface. The default 127.0.0.1 inside a container is unreachable
 # from the host, which is the classic "works locally, 502s in production"
-# deployment failure. Render reads PORT, so the app honours both.
+# deployment failure.
+#
+# PORT is deliberately NOT set here. Railway, Render and Fly all inject PORT at
+# runtime and route their proxy to it; baking a value into the image would
+# shadow that. The application falls back to API_PORT (4000) when PORT is
+# absent, which is the local case.
 ENV HOST=0.0.0.0
-ENV PORT=4000
 ENV API_PORT=4000
 
 # --chown on COPY rather than a separate `chown -R` layer.
@@ -116,7 +120,7 @@ EXPOSE 4000
 # to boot and stay up while the database is briefly unavailable, so probing a
 # dependency here would convert a database blip into a container restart loop.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.API_PORT||4000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||process.env.API_PORT||4000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 # NOTE ON MIGRATIONS
 # `npm run db:deploy` (prisma migrate deploy) is deliberately NOT run at

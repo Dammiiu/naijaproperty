@@ -22,6 +22,17 @@ export const envSchema = z.object({
   API_PORT: z.coerce.number().int().positive().default(4000),
 
   /*
+   * Platform-assigned port. Railway, Render, Fly and Heroku all inject PORT and
+   * route their internal proxy to whatever it says. It is read in preference to
+   * API_PORT in main.ts.
+   *
+   * This is not optional politeness. An app that only honours API_PORT listens
+   * on 4000 while the platform dials, say, 8080, and the deployment fails with
+   * a connection reset that looks like a crash rather than a port mismatch.
+   */
+  PORT: z.coerce.number().int().positive().optional(),
+
+  /*
    * Pool size is set with `connection_limit` in the URL itself, not here.
    *
    * This file used to declare DATABASE_POOL_MAX, and PrismaService never read

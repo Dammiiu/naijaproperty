@@ -110,8 +110,20 @@ async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
   if (e2e) logger.warn('NJP_E2E=1 — rate limits are raised for this process');
 
-  await app.listen({ port: env.API_PORT, host: '0.0.0.0' });
-  logger.log(`Naijaproperty API listening on ${env.API_URL}`);
+  /*
+   * PORT wins over API_PORT.
+   *
+   * Every PaaS here (Railway, Render, Fly, Heroku) injects PORT and points its
+   * internal proxy at that value. Listening on API_PORT instead means the proxy
+   * dials a port nothing is listening on, and the deployment fails with a
+   * connection reset that reads as a crash rather than as a port mismatch.
+   *
+   * API_PORT remains the default so local development and `npm start` are
+   * unchanged.
+   */
+  const port = env.PORT ?? env.API_PORT;
+  await app.listen({ port, host: '0.0.0.0' });
+  logger.log(`Naijaproperty API listening on ${env.API_URL} (port ${port})`);
   logger.log(`Environment: ${env.NODE_ENV}`);
   if (!isProduction()) {
     logger.log(
